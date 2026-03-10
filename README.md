@@ -22,8 +22,9 @@ It is designed to help people discuss how communication and sensory-motor interf
   - Hearing distortions
   - Vision distortions
   - Synesthesia-inspired cross-sensory interference
-- Three modular tests:
+- Four modular tests:
   - Symbol Selection Test (AAC-inspired generic symbol grid)
+  - Color Selection Test
   - Object/Color/Shape Recognition Test
   - Timed Focus/Response Test
 - Query-string preset support:
@@ -64,6 +65,7 @@ src/
   state/
     SimulationContext.tsx
   tests/
+    ColorSelectionTest.tsx
     SymbolSelectionTest.tsx
     RecognitionTest.tsx
     TimedFocusTest.tsx
@@ -89,6 +91,7 @@ src/
 - Visual effects engine: `src/engines/visualEffectsEngine.ts`
 - Interaction disruption engine: `src/engines/interactionEngine.ts`
 - Query-string preset loader: `src/utils/presets.ts`
+- Live in-simulation slider tuning: `src/pages/SimulationPage.tsx` + `src/components/SliderPanel.tsx`
 
 ## Local Development
 

@@ -1,9 +1,11 @@
 interface SimulationControlsProps {
   paused: boolean;
   muted: boolean;
+  settingsOpen: boolean;
   onTogglePause: () => void;
   onRestart: () => void;
   onToggleMute: () => void;
+  onToggleSettings: () => void;
   onReturnToSetup: () => void;
   onOpenDebrief: () => void;
 }
@@ -11,9 +13,11 @@ interface SimulationControlsProps {
 export function SimulationControls({
   paused,
   muted,
+  settingsOpen,
   onTogglePause,
   onRestart,
   onToggleMute,
+  onToggleSettings,
   onReturnToSetup,
   onOpenDebrief,
 }: SimulationControlsProps) {
@@ -27,6 +31,9 @@ export function SimulationControls({
       </button>
       <button type="button" onClick={onToggleMute}>
         {muted ? 'Unmute Audio' : 'Mute Audio'}
+      </button>
+      <button type="button" onClick={onToggleSettings}>
+        {settingsOpen ? 'Hide Settings' : 'Open Settings'}
       </button>
       <button type="button" onClick={onReturnToSetup}>
         Return to Setup

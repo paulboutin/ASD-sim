@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { TestId } from '../types/simulation';
+import { ColorSelectionTest } from './ColorSelectionTest';
 import { RecognitionTest } from './RecognitionTest';
 import { SymbolSelectionTest } from './SymbolSelectionTest';
 import type { TestProps } from './TestTypes';
@@ -18,6 +19,12 @@ export const TEST_DEFINITIONS: TestDefinition[] = [
     label: 'Symbol Selection',
     summary: 'AAC-inspired symbol board targeting under layered interference.',
     component: SymbolSelectionTest,
+  },
+  {
+    id: 'color-selection',
+    label: 'Color Selection',
+    summary: 'Named color targeting with dynamic swatch shifts and perception conflict.',
+    component: ColorSelectionTest,
   },
   {
     id: 'recognition',

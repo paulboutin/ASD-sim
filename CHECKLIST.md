@@ -1,15 +1,11 @@
-# ASD-sim MVP Checklist
+# ASD-sim Workstream Checklist (Interference + Test Expansion)
 
-- [x] Define architecture and module structure documentation
-- [x] Scaffold static GitHub Pages-ready app shell (Vite + React + TS)
-- [x] Implement routing/views: Home, Setup, Simulation, Reflection, About
-- [x] Implement global slider state with reset + query-string preset loader
-- [x] Implement modular test engine with 3 tests
-- [x] Implement interaction disruption engine (apraxia + stim effects)
-- [x] Implement visual effects engine (vision + synesthesia overlays)
-- [x] Implement audio engine (hearing + synesthesia audio, mute support)
-- [x] Implement simulation controls (pause/restart/mute/return)
-- [x] Write advocacy-forward content, warnings, and disclaimers
-- [x] Add GitHub Pages deployment config
-- [x] Finalize README with setup/deploy/presets/disclaimer details
-- [x] Run build validation
+- [x] Increase interference severity (target drift/instability/motion surges)
+- [x] Remove any pre-highlighted answer styling in Symbol Selection
+- [x] Add icon/image assets and wire into symbol grid
+- [x] Add new modular Color Selection test and register in test chooser
+- [x] Add real-time slider controls on Simulation page (collapsible panel)
+- [x] Improve audio interference audibility and modulation behavior
+- [x] Update copy/UI for new test and controls
+- [x] Run lint + build validation
+- [x] Mark checklist complete

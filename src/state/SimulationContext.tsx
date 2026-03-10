@@ -36,7 +36,7 @@ const initialState: SimulationState = {
   channels: DEFAULT_LEVELS,
   selectedTest: 'symbol-selection',
   warningsAccepted: false,
-  muted: true,
+  muted: false,
   paused: false,
   restartNonce: 0,
   debriefSnapshot: null,

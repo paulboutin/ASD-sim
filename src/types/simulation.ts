@@ -2,7 +2,7 @@ export type ChannelKey = 'apraxia' | 'stim' | 'hearing' | 'vision' | 'synesthesi
 
 export type ChannelLevels = Record<ChannelKey, number>;
 
-export type TestId = 'symbol-selection' | 'recognition' | 'timed-focus';
+export type TestId = 'symbol-selection' | 'recognition' | 'timed-focus' | 'color-selection';
 
 export interface DebriefSnapshot {
   testId: TestId;

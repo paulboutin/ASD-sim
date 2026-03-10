@@ -5,11 +5,12 @@ interface SliderPanelProps {
   levels: ChannelLevels;
   onChange: (key: keyof ChannelLevels, value: number) => void;
   onReset: () => void;
+  embedded?: boolean;
 }
 
-export function SliderPanel({ levels, onChange, onReset }: SliderPanelProps) {
+export function SliderPanel({ levels, onChange, onReset, embedded = false }: SliderPanelProps) {
   return (
-    <section className="panel">
+    <section className={embedded ? 'slider-panel-embedded' : 'panel'}>
       <div className="panel-header-row">
         <h2>Global Interference Channels</h2>
         <button type="button" className="ghost-button" onClick={onReset}>

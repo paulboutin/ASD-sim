@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelReadout } from '../components/ChannelReadout';
 import { SimulationControls } from '../components/SimulationControls';
+import { SliderPanel } from '../components/SliderPanel';
 import { VisualEffectsLayer } from '../components/VisualEffectsLayer';
 import { useAudioEngine } from '../engines/audioEngine';
 import { getTestById } from '../tests';
@@ -45,13 +46,16 @@ export function SimulationPage() {
   const navigate = useNavigate();
   const {
     state: { channels, muted, paused, restartNonce, selectedTest, warningsAccepted },
+    setChannel,
     setMuted,
     setPaused,
+    resetChannels,
     restartSession,
     saveDebrief,
   } = useSimulation();
   const [stats, setStats] = useState<SessionStats>(INITIAL_STATS);
   const [tick, setTick] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const test = useMemo(() => getTestById(selectedTest), [selectedTest]);
   const sessionKey = `${selectedTest}-${restartNonce}`;
@@ -124,12 +128,29 @@ export function SimulationPage() {
       <SimulationControls
         paused={paused}
         muted={muted}
+        settingsOpen={settingsOpen}
         onTogglePause={() => setPaused(!paused)}
         onRestart={handleRestart}
         onToggleMute={() => setMuted(!muted)}
+        onToggleSettings={() => setSettingsOpen((open) => !open)}
         onReturnToSetup={() => navigate('/setup')}
         onOpenDebrief={openDebrief}
       />
+
+      {settingsOpen ? (
+        <section className="panel settings-drawer">
+          <SliderPanel levels={channels} onChange={setChannel} onReset={resetChannels} embedded />
+        </section>
+      ) : null}
+
+      {muted ? (
+        <section className="panel audio-note">
+          <p>
+            Audio interference is currently muted. Use <strong>Unmute Audio</strong> to hear layered hearing
+            distortion.
+          </p>
+        </section>
+      ) : null}
 
       <section className="simulation-layout">
         <ChannelReadout channels={channels} />

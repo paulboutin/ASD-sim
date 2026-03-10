@@ -7,6 +7,7 @@ import {
   shouldDropIntent,
   shouldRequireIntentConfirm,
 } from '../engines/interactionEngine';
+import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
 function randomSymbol(excluding?: string): string {
@@ -30,20 +31,26 @@ function resolveRegistration(
 export function SymbolSelectionTest({ channels, paused, onEvent }: TestProps) {
   const [target, setTarget] = useState<string>(() => randomSymbol());
   const [status, setStatus] = useState('Select the target symbol named above.');
+  const [gridItems, setGridItems] = useState(() => shuffleArray(SYMBOL_ITEMS));
   const [tick, setTick] = useState(0);
   const [pendingIntent, setPendingIntent] = useState<string | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (paused) return;
-    const interval = window.setInterval(() => {
+    const tickInterval = window.setInterval(() => {
       setTick((value) => value + 80);
     }, 80);
+    const swapCadence = Math.max(820, 3200 - channels.apraxia * 11 - channels.stim * 10);
+    const swapInterval = window.setInterval(() => {
+      setGridItems((current) => shuffleArray(current));
+    }, swapCadence);
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(tickInterval);
+      window.clearInterval(swapInterval);
     };
-  }, [paused]);
+  }, [channels.apraxia, channels.stim, paused]);
 
   useEffect(() => {
     return () => {
@@ -80,7 +87,7 @@ export function SymbolSelectionTest({ channels, paused, onEvent }: TestProps) {
     setStatus('Processing selection...');
 
     window.setTimeout(() => {
-      const labels = SYMBOL_ITEMS.map((item) => item.label);
+      const labels = gridItems.map((item) => item.label);
       const selected = resolveRegistration(label, labels, channels.apraxia, channels.vision);
 
       if (selected === target) {
@@ -112,7 +119,7 @@ export function SymbolSelectionTest({ channels, paused, onEvent }: TestProps) {
         className="aac-grid"
         style={{ transform: `translate(${rock.x.toFixed(1)}px, ${rock.y.toFixed(1)}px)` }}
       >
-        {SYMBOL_ITEMS.map((item, index) => {
+        {gridItems.map((item, index) => {
           const drift = getTargetDrift(channels.apraxia + channels.synesthesia * 0.35, tick, index + 1);
 
           return (

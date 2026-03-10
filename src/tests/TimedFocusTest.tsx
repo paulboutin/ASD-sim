@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getInterruptionOpacity, getTargetDrift } from '../engines/interactionEngine';
+import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
 const PROMPTS = [
@@ -18,6 +19,7 @@ function pickPrompt(previous?: string): string {
 
 export function TimedFocusTest({ channels, paused, onEvent }: TestProps) {
   const [currentPrompt, setCurrentPrompt] = useState<string>(() => pickPrompt());
+  const [responseOrder, setResponseOrder] = useState<string[]>(() => shuffleArray(RESPONSES));
   const [awaitingResponse, setAwaitingResponse] = useState(true);
   const [status, setStatus] = useState('Respond to each prompt while distractions are active.');
   const [tick, setTick] = useState(0);
@@ -42,12 +44,17 @@ export function TimedFocusTest({ channels, paused, onEvent }: TestProps) {
     const tickTimer = window.setInterval(() => {
       setTick((value) => value + 100);
     }, 100);
+    const swapCadence = Math.max(900, 3100 - channels.stim * 11 - channels.apraxia * 8);
+    const swapTimer = window.setInterval(() => {
+      setResponseOrder((current) => shuffleArray(current));
+    }, swapCadence);
 
     return () => {
       window.clearInterval(promptTimer);
       window.clearInterval(tickTimer);
+      window.clearInterval(swapTimer);
     };
-  }, [awaitingResponse, channels.hearing, channels.stim, currentPrompt, onEvent, paused]);
+  }, [awaitingResponse, channels.apraxia, channels.hearing, channels.stim, currentPrompt, onEvent, paused]);
 
   const interruptionOpacity = useMemo(
     () => getInterruptionOpacity(channels.stim + channels.synesthesia * 0.25, tick),
@@ -83,7 +90,7 @@ export function TimedFocusTest({ channels, paused, onEvent }: TestProps) {
       <div className="target-callout">{currentPrompt}</div>
 
       <div className="focus-response-grid">
-        {RESPONSES.map((response, index) => {
+        {responseOrder.map((response, index) => {
           const drift = getTargetDrift(channels.apraxia, tick, index + 40);
           return (
             <button

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
+import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
 interface ColorOption {
@@ -30,20 +31,26 @@ function shiftedIndex(index: number, length: number, vision: number, synesthesia
 
 export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
   const [target, setTarget] = useState<ColorOption>(() => nextColor());
+  const [displayOptions, setDisplayOptions] = useState<ColorOption[]>(() => shuffleArray(COLOR_OPTIONS));
   const [status, setStatus] = useState('Select the requested color swatch.');
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     if (paused) return;
 
-    const interval = window.setInterval(() => {
+    const tickInterval = window.setInterval(() => {
       setTick((value) => value + 70);
     }, 70);
+    const swapCadence = Math.max(780, 2700 - channels.vision * 10 - channels.stim * 8);
+    const swapInterval = window.setInterval(() => {
+      setDisplayOptions((current) => shuffleArray(current));
+    }, swapCadence);
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(tickInterval);
+      window.clearInterval(swapInterval);
     };
-  }, [paused]);
+  }, [channels.stim, channels.vision, paused]);
 
   const handleColorChoice = (index: number): void => {
     if (paused) return;
@@ -52,14 +59,14 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
     setStatus('Processing response...');
 
     window.setTimeout(() => {
-      const driftedIndex = shiftedIndex(index, COLOR_OPTIONS.length, channels.vision, channels.synesthesia);
+      const driftedIndex = shiftedIndex(index, displayOptions.length, channels.vision, channels.synesthesia);
       let resolvedIndex = driftedIndex;
 
       if (shouldDropIntent(channels.apraxia)) {
-        resolvedIndex = (resolvedIndex + 1) % COLOR_OPTIONS.length;
+        resolvedIndex = (resolvedIndex + 1) % displayOptions.length;
       }
 
-      const registered = COLOR_OPTIONS[resolvedIndex];
+      const registered = displayOptions[resolvedIndex];
       if (registered.name === target.name) {
         setStatus(`Response registered for ${target.name}. Next color loaded.`);
         onEvent({ type: 'response', note: `Color target matched: ${target.name}.` });
@@ -85,7 +92,7 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
       <div className="target-callout">Select color: {target.name}</div>
 
       <div className="color-grid">
-        {COLOR_OPTIONS.map((option, index) => {
+        {displayOptions.map((option, index) => {
           const drift = getTargetDrift(channels.apraxia + channels.vision * 0.35, tick, index + 60);
           const hueShift = Math.sin((tick + index * 160) * 0.005) * channels.synesthesia * 0.7;
           const pulse = 1 + Math.sin((tick + index * 50) * 0.008) * channels.vision * 0.0018;

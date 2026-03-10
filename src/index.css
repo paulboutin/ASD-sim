@@ -444,6 +444,44 @@ input[type='text'][readonly] {
   text-transform: capitalize;
 }
 
+.shape-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88px;
+  padding: 0.6rem;
+}
+
+.shape-visual {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border: 2px solid rgba(23, 35, 48, 0.35);
+}
+
+.shape-visual.circle {
+  border-radius: 999px;
+}
+
+.shape-visual.square {
+  border-radius: 0.35rem;
+}
+
+.shape-visual.triangle {
+  border: 0;
+  width: 0;
+  height: 0;
+  border-left: 32px solid transparent;
+  border-right: 32px solid transparent;
+  border-bottom: 58px solid;
+  background: transparent;
+}
+
+.shape-visual.diamond {
+  transform: rotate(45deg);
+  border-radius: 0.2rem;
+}
+
 .test-status {
   margin-top: auto;
   border-top: 1px solid var(--line);

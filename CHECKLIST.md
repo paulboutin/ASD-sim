@@ -1,11 +1,10 @@
-# ASD-sim Workstream Checklist (Interference + Test Expansion)
+# ASD-sim Workstream Checklist (Shape UX + Random Swapping)
 
-- [x] Increase interference severity (target drift/instability/motion surges)
-- [x] Remove any pre-highlighted answer styling in Symbol Selection
-- [x] Add icon/image assets and wire into symbol grid
-- [x] Add new modular Color Selection test and register in test chooser
-- [x] Add real-time slider controls on Simulation page (collapsible panel)
-- [x] Improve audio interference audibility and modulation behavior
-- [x] Update copy/UI for new test and controls
+- [x] Convert Recognition test options to actual colored shapes (no text labels on options)
+- [x] Update Recognition prompts to use shape+color targets and randomize option order during active test
+- [x] Add random in-test position/order swapping to Symbol Selection
+- [x] Add random in-test position/order swapping to Color Selection
+- [x] Add random in-test position/order swapping to Timed Focus responses
+- [x] Add any required CSS updates for shape-only recognition cards and shuffled layouts
 - [x] Run lint + build validation
 - [x] Mark checklist complete

@@ -30,7 +30,7 @@ function shiftedIndex(index: number, length: number, vision: number, synesthesia
   return (index + shift + length) % length;
 }
 
-export function ColorSelectionTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
+export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   const [target, setTarget] = useState<ColorOption>(() => nextColor());
   const [displayOptions, setDisplayOptions] = useState<ColorOption[]>(() => shuffleArray(COLOR_OPTIONS));
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching color.');
@@ -40,6 +40,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, onEvent }: 
   const { speakNo } = usePromptVoice(`Touch ${target.name}.`, {
     enabled: audioEnabled,
     paused,
+    volume: promptVoiceVolume,
   });
 
   useEffect(() => {

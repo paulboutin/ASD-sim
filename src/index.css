@@ -229,6 +229,24 @@ nav a.active {
   gap: 0.9rem;
 }
 
+.audio-mix-card {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+  border: 1px solid #cfe0eb;
+  border-radius: 0.85rem;
+  padding: 0.85rem 0.9rem;
+  background: linear-gradient(180deg, #f7fbff, #eef6fb);
+}
+
+.audio-mix-card h3 {
+  margin: 0;
+}
+
+.audio-mix-card .panel-subtitle {
+  margin: 0.2rem 0 0;
+}
+
 .content-toggle-card {
   display: grid;
   gap: 0.7rem;

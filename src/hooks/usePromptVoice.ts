@@ -9,6 +9,7 @@ interface SpeakOptions {
 interface PromptVoiceOptions {
   enabled: boolean;
   paused: boolean;
+  volume: number;
 }
 
 const FEMALE_VOICE_HINTS = ['samantha', 'ava', 'victoria', 'zira', 'karen', 'allison', 'susan', 'female'];
@@ -28,13 +29,21 @@ function pickVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null 
   );
 }
 
-export function usePromptVoice(promptText: string, { enabled, paused }: PromptVoiceOptions) {
+export function usePromptVoice(promptText: string, { enabled, paused, volume }: PromptVoiceOptions) {
   const promptDelayRef = useRef<number | null>(null);
   const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const normalizedVolume = Math.max(0, Math.min(1, volume / 100));
 
   const speak = useCallback(
     (text: string, options?: SpeakOptions) => {
-      if (!enabled || paused || typeof window === 'undefined' || !('speechSynthesis' in window) || !text) {
+      if (
+        !enabled ||
+        paused ||
+        normalizedVolume <= 0 ||
+        typeof window === 'undefined' ||
+        !('speechSynthesis' in window) ||
+        !text
+      ) {
         return;
       }
 
@@ -49,11 +58,11 @@ export function usePromptVoice(promptText: string, { enabled, paused }: PromptVo
       utterance.lang = preferredVoiceRef.current?.lang ?? 'en-US';
       utterance.pitch = options?.pitch ?? 1.55;
       utterance.rate = options?.rate ?? 0.8;
-      utterance.volume = options?.volume ?? 0.96;
+      utterance.volume = Math.min(1, (options?.volume ?? 0.96) * normalizedVolume);
 
       synthesis.speak(utterance);
     },
-    [enabled, paused],
+    [enabled, normalizedVolume, paused],
   );
 
   useEffect(() => {
@@ -74,7 +83,7 @@ export function usePromptVoice(promptText: string, { enabled, paused }: PromptVo
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    if (enabled && !paused && promptText) {
+    if (enabled && !paused && promptText && normalizedVolume > 0) {
       if (promptDelayRef.current) {
         window.clearTimeout(promptDelayRef.current);
       }
@@ -92,7 +101,7 @@ export function usePromptVoice(promptText: string, { enabled, paused }: PromptVo
     }
 
     window.speechSynthesis.cancel();
-  }, [enabled, paused, promptText, speak]);
+  }, [enabled, normalizedVolume, paused, promptText, speak]);
 
   useEffect(() => {
     return () => {

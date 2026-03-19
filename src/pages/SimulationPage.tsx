@@ -52,6 +52,7 @@ export function SimulationPage() {
   const {
     state: {
       channels,
+      audioMix,
       muted,
       paused,
       intrusiveThoughtsEnabled,
@@ -60,10 +61,12 @@ export function SimulationPage() {
       warningsAccepted,
     },
     setChannel,
+    setAudioMix,
     setIntrusiveThoughtsEnabled,
     setMuted,
     setPaused,
     resetChannels,
+    resetAudioMix,
     restartSession,
     saveDebrief,
   } = useSimulation();
@@ -114,6 +117,8 @@ export function SimulationPage() {
     hearingLevel: channels.hearing,
     synesthesiaLevel: channels.synesthesia,
     intrusiveThoughtsEnabled,
+    distortionVolume: audioMix.distortion,
+    intrusiveThoughtsVolume: audioMix.intrusiveThoughts,
   });
 
   const handleEvent = useCallback(
@@ -131,6 +136,7 @@ export function SimulationPage() {
       testId: selectedTest,
       testTitle: test.label,
       channelLevels: channels,
+      audioMixLevels: audioMix,
       intrusiveThoughtsEnabled,
       attempts: stats.attempts,
       responses: stats.responses,
@@ -140,7 +146,7 @@ export function SimulationPage() {
       notes: stats.notes,
     });
     navigate('/debrief');
-  }, [channels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label]);
+  }, [audioMix, channels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label]);
 
   const handleRestart = (): void => {
     setStats(INITIAL_STATS);
@@ -230,10 +236,13 @@ export function SimulationPage() {
           <section className={`panel settings-drawer ${isFullscreen ? 'settings-drawer-floating' : ''}`}>
             <SliderPanel
               levels={channels}
+              audioMix={audioMix}
               intrusiveThoughtsEnabled={intrusiveThoughtsEnabled}
               onChange={setChannel}
+              onAudioMixChange={setAudioMix}
               onSetIntrusiveThoughtsEnabled={setIntrusiveThoughtsEnabled}
               onReset={resetChannels}
+              onResetAudioMix={resetAudioMix}
               embedded
             />
           </section>
@@ -257,6 +266,7 @@ export function SimulationPage() {
               channels={channels}
               paused={paused}
               audioEnabled={!muted}
+              promptVoiceVolume={audioMix.promptVoice}
               onEvent={handleEvent}
             />
           </VisualEffectsLayer>

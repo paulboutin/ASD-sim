@@ -7,6 +7,8 @@ interface AudioControls {
   hearingLevel: number;
   synesthesiaLevel: number;
   intrusiveThoughtsEnabled: boolean;
+  distortionVolume: number;
+  intrusiveThoughtsVolume: number;
 }
 
 interface AudioNodes {
@@ -140,10 +142,14 @@ export function useAudioEngine({
   hearingLevel,
   synesthesiaLevel,
   intrusiveThoughtsEnabled,
+  distortionVolume,
+  intrusiveThoughtsVolume,
 }: AudioControls): { triggerCrossSensoryTone: () => void } {
   const nodesRef = useRef<AudioNodes | null>(null);
   const modulationRef = useRef<number | null>(null);
   const intrusiveTimerRef = useRef<number | null>(null);
+  const distortionMix = Math.max(0, Math.min(1, distortionVolume / 100));
+  const intrusiveMix = Math.max(0, Math.min(1, intrusiveThoughtsVolume / 100));
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined' || nodesRef.current) return;
@@ -180,20 +186,21 @@ export function useAudioEngine({
 
     const active = enabled && !muted && !paused;
     const hearingMix = hearingLevel / 100;
+    const mixedHearing = hearingMix * distortionMix;
 
     nodes.masterGain.gain.setTargetAtTime(active ? 0.95 : 0, nodes.context.currentTime, 0.06);
-    nodes.buzzGain.gain.setTargetAtTime(active ? hearingMix * 0.09 : 0, nodes.context.currentTime, 0.08);
-    nodes.fluorescentGain.gain.setTargetAtTime(active ? hearingMix * 0.024 : 0, nodes.context.currentTime, 0.05);
-    nodes.toneGain.gain.setTargetAtTime(active ? hearingMix * 0.075 : 0, nodes.context.currentTime, 0.08);
-    nodes.noiseGain.gain.setTargetAtTime(active ? hearingMix * 0.11 : 0, nodes.context.currentTime, 0.08);
-    nodes.crackleGain.gain.setTargetAtTime(active ? hearingMix * 0.01 : 0, nodes.context.currentTime, 0.04);
+    nodes.buzzGain.gain.setTargetAtTime(active ? mixedHearing * 0.09 : 0, nodes.context.currentTime, 0.08);
+    nodes.fluorescentGain.gain.setTargetAtTime(active ? mixedHearing * 0.024 : 0, nodes.context.currentTime, 0.05);
+    nodes.toneGain.gain.setTargetAtTime(active ? mixedHearing * 0.075 : 0, nodes.context.currentTime, 0.08);
+    nodes.noiseGain.gain.setTargetAtTime(active ? mixedHearing * 0.11 : 0, nodes.context.currentTime, 0.08);
+    nodes.crackleGain.gain.setTargetAtTime(active ? mixedHearing * 0.01 : 0, nodes.context.currentTime, 0.04);
 
     nodes.fluorescentOsc.frequency.setTargetAtTime(112 + hearingLevel * 0.22, nodes.context.currentTime, 0.08);
     nodes.toneOsc.frequency.setTargetAtTime(150 + hearingLevel * 2.8, nodes.context.currentTime, 0.1);
     nodes.noiseFilter.frequency.setTargetAtTime(160 + hearingLevel * 6.4, nodes.context.currentTime, 0.1);
     nodes.crackleFilter.frequency.setTargetAtTime(1800 + hearingLevel * 16, nodes.context.currentTime, 0.08);
 
-    if (!active || hearingLevel < 8) {
+    if (!active || hearingLevel < 8 || distortionMix <= 0) {
       if (modulationRef.current) {
         window.clearInterval(modulationRef.current);
         modulationRef.current = null;
@@ -212,23 +219,25 @@ export function useAudioEngine({
         currentNodes.buzzOsc.frequency.setTargetAtTime(68 + jitter * 1.8, currentTime, 0.07);
         currentNodes.fluorescentOsc.frequency.setTargetAtTime(105 + jitter * 0.45, currentTime, 0.06);
         currentNodes.noiseGain.gain.setTargetAtTime(
-          Math.max(0.01, hearingLevel / 700 + Math.random() * (hearingLevel / 800)),
+          Math.max(0.01 * distortionMix, hearingLevel / 700 + Math.random() * (hearingLevel / 800)) * distortionMix,
           currentTime,
           0.09,
         );
         currentNodes.fluorescentGain.gain.setTargetAtTime(
-          Math.max(0.004, hearingLevel / 2400 + (Math.random() > 0.62 ? hearingLevel / 880 : 0)),
+          Math.max(0.004 * distortionMix, hearingLevel / 2400 + (Math.random() > 0.62 ? hearingLevel / 880 : 0)) *
+            distortionMix,
           currentTime,
           0.04,
         );
         currentNodes.crackleGain.gain.setTargetAtTime(
-          Math.max(0.002, hearingLevel / 3200 + (Math.random() > 0.72 ? hearingLevel / 1050 : 0)),
+          Math.max(0.002 * distortionMix, hearingLevel / 3200 + (Math.random() > 0.72 ? hearingLevel / 1050 : 0)) *
+            distortionMix,
           currentTime,
           0.03,
         );
       }, 290);
     }
-  }, [enabled, muted, paused, hearingLevel]);
+  }, [distortionMix, enabled, muted, paused, hearingLevel]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -238,7 +247,8 @@ export function useAudioEngine({
       intrusiveTimerRef.current = null;
     }
 
-    const active = enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12;
+    const active =
+      enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12 && intrusiveMix > 0;
     if (!active) return;
 
     const scheduleThought = (): void => {
@@ -256,7 +266,7 @@ export function useAudioEngine({
         utterance.lang = voice?.lang ?? 'en-US';
         utterance.pitch = 0.62;
         utterance.rate = 0.72;
-        utterance.volume = Math.min(0.38, 0.12 + hearingLevel / 340);
+        utterance.volume = Math.min(0.38, 0.12 + hearingLevel / 340) * intrusiveMix;
 
         synthesis.speak(utterance);
         scheduleThought();
@@ -271,12 +281,12 @@ export function useAudioEngine({
         intrusiveTimerRef.current = null;
       }
     };
-  }, [enabled, muted, paused, hearingLevel, intrusiveThoughtsEnabled]);
+  }, [enabled, intrusiveMix, intrusiveThoughtsEnabled, muted, paused, hearingLevel]);
 
   const triggerCrossSensoryTone = useCallback(() => {
     const nodes = nodesRef.current;
     if (!nodes) return;
-    if (muted || paused || !enabled || synesthesiaLevel <= 0) return;
+    if (muted || paused || !enabled || synesthesiaLevel <= 0 || distortionMix <= 0) return;
 
     const now = nodes.context.currentTime;
     const gain = nodes.context.createGain();
@@ -288,13 +298,13 @@ export function useAudioEngine({
     osc.frequency.value = 320 + synesthesiaLevel * 4 + Math.random() * 120;
     osc.connect(gain);
 
-    const peak = 0.008 + synesthesiaLevel / 6200;
+    const peak = (0.008 + synesthesiaLevel / 6200) * distortionMix;
     gain.gain.linearRampToValueAtTime(peak, now + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
 
     osc.start(now);
     osc.stop(now + 0.2);
-  }, [enabled, muted, paused, synesthesiaLevel]);
+  }, [distortionMix, enabled, muted, paused, synesthesiaLevel]);
 
   return { triggerCrossSensoryTone };
 }

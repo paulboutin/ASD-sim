@@ -17,8 +17,9 @@ function pickPrompt(previous?: string): string {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function TimedFocusTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
+export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   void audioEnabled;
+  void promptVoiceVolume;
   const [currentPrompt, setCurrentPrompt] = useState<string>(() => pickPrompt());
   const [responseOrder, setResponseOrder] = useState<string[]>(() => shuffleArray(RESPONSES));
   const [awaitingResponse, setAwaitingResponse] = useState(true);

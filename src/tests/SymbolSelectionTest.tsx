@@ -29,7 +29,7 @@ function resolveRegistration(
   return allLabels[(initialIndex + bump) % allLabels.length];
 }
 
-export function SymbolSelectionTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
+export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   const [target, setTarget] = useState<string>(() => randomSymbol());
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching symbol.');
   const [gridItems, setGridItems] = useState(() => shuffleArray(SYMBOL_ITEMS));
@@ -42,6 +42,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, onEvent }:
   const { speakNo } = usePromptVoice(`Touch ${target}.`, {
     enabled: audioEnabled,
     paused,
+    volume: promptVoiceVolume,
   });
 
   useEffect(() => {

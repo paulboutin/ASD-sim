@@ -11,5 +11,6 @@ export interface TestProps {
   channels: ChannelLevels;
   paused: boolean;
   audioEnabled: boolean;
+  promptVoiceVolume: number;
   onEvent: (event: SimulationEvent) => void;
 }

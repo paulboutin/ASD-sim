@@ -68,7 +68,7 @@ function noisyIndex(index: number, total: number, vision: number): number {
   return (index + offset + total) % total;
 }
 
-export function RecognitionTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
+export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   const [prompt, setPrompt] = useState<RecognitionPrompt>(() => nextPrompt());
   const [displayOptions, setDisplayOptions] = useState<ShapeOption[]>(() => shuffleArray(prompt.options));
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching shape-color card.');
@@ -79,6 +79,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, onEvent }: Tes
   const { speakNo } = usePromptVoice(`Touch ${answerOption.colorName} ${answerOption.shape}.`, {
     enabled: audioEnabled,
     paused,
+    volume: promptVoiceVolume,
   });
 
   useEffect(() => {

@@ -33,7 +33,18 @@ const INTRUSIVE_THOUGHTS = [
   "why can't you just point",
 ];
 
-const WHISPER_VOICE_HINTS = ['fred', 'daniel', 'alex', 'david', 'male'];
+const BOYISH_VOICE_HINTS = [
+  'alex',
+  'daniel',
+  'tom',
+  'aaron',
+  'james',
+  'lee',
+  'matthew',
+  'oliver',
+  'fred',
+  'male',
+];
 
 function pickIntrusiveVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (!voices.length) return null;
@@ -43,8 +54,10 @@ function pickIntrusiveVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoic
 
   return (
     preferredPool.find((voice) =>
-      WHISPER_VOICE_HINTS.some((hint) => voice.name.toLowerCase().includes(hint)),
-    ) ?? preferredPool[0]
+      BOYISH_VOICE_HINTS.some((hint) => voice.name.toLowerCase().includes(hint)),
+    ) ??
+    preferredPool.find((voice) => voice.localService) ??
+    preferredPool[0]
   );
 }
 
@@ -264,9 +277,9 @@ export function useAudioEngine({
 
         utterance.voice = voice;
         utterance.lang = voice?.lang ?? 'en-US';
-        utterance.pitch = 0.62;
-        utterance.rate = 0.72;
-        utterance.volume = Math.min(0.38, 0.12 + hearingLevel / 340) * intrusiveMix;
+        utterance.pitch = 1.12 + Math.random() * 0.08;
+        utterance.rate = 0.84 + Math.random() * 0.08;
+        utterance.volume = Math.min(0.86, 0.36 + hearingLevel / 150) * intrusiveMix;
 
         synthesis.speak(utterance);
         scheduleThought();

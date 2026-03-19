@@ -421,6 +421,47 @@ input[type='text'][readonly] {
   min-height: calc(100vh - 2rem);
   padding-top: 8.9rem;
   padding-bottom: 9.2rem;
+  padding-left: clamp(1.25rem, 3vw, 2.5rem);
+  padding-right: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.simulation-layout-fullscreen .test-header,
+.simulation-layout-fullscreen .target-callout,
+.simulation-layout-fullscreen .test-status {
+  max-width: 1040px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.simulation-layout-fullscreen .target-callout {
+  padding: 1rem 1.2rem;
+}
+
+.simulation-layout-fullscreen .prompt-callout {
+  gap: 1rem;
+}
+
+.simulation-layout-fullscreen .prompt-callout strong {
+  font-size: 1.28rem;
+}
+
+.simulation-layout-fullscreen .prompt-color-chip,
+.simulation-layout-fullscreen .prompt-symbol-chip,
+.simulation-layout-fullscreen .prompt-shape-chip {
+  width: 72px;
+  height: 72px;
+}
+
+.simulation-layout-fullscreen .prompt-shape {
+  width: 44px;
+  height: 44px;
+}
+
+.simulation-layout-fullscreen .prompt-shape.triangle {
+  border-left-width: 24px;
+  border-right-width: 24px;
+  border-bottom-width: 42px;
 }
 
 .fullscreen-toolbar {
@@ -637,6 +678,31 @@ input[type='text'][readonly] {
   gap: 0.7rem;
 }
 
+.simulation-layout-fullscreen .aac-grid,
+.simulation-layout-fullscreen .recognition-grid,
+.simulation-layout-fullscreen .focus-response-grid,
+.simulation-layout-fullscreen .color-grid {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  justify-content: center;
+  align-content: center;
+}
+
+.simulation-layout-fullscreen .aac-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+  gap: 1rem;
+}
+
+.simulation-layout-fullscreen .recognition-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+  gap: 1rem;
+}
+
+.simulation-layout-fullscreen .focus-response-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  gap: 1rem;
+}
+
 .symbol-tile,
 .recognition-option,
 .focus-response-option {
@@ -666,6 +732,11 @@ input[type='text'][readonly] {
   gap: 0.75rem;
 }
 
+.simulation-layout-fullscreen .color-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 250px));
+  gap: 1rem;
+}
+
 .color-swatch {
   min-height: 82px;
   border-radius: 0.8rem;
@@ -679,6 +750,32 @@ input[type='text'][readonly] {
   background: #fff;
 }
 
+.simulation-layout-fullscreen .symbol-tile,
+.simulation-layout-fullscreen .recognition-option,
+.simulation-layout-fullscreen .focus-response-option,
+.simulation-layout-fullscreen .color-swatch {
+  min-height: 170px;
+  padding: 1rem;
+  border-radius: 1rem;
+  box-shadow: 0 12px 28px rgba(24, 43, 63, 0.08);
+}
+
+.simulation-layout-fullscreen .symbol-tile,
+.simulation-layout-fullscreen .focus-response-option,
+.simulation-layout-fullscreen .recognition-option {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.simulation-layout-fullscreen .color-swatch {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: 0.9rem;
+}
+
 .color-chip {
   width: 40px;
   height: 40px;
@@ -686,9 +783,21 @@ input[type='text'][readonly] {
   border: 1px solid rgba(0, 0, 0, 0.24);
 }
 
+.simulation-layout-fullscreen .color-chip {
+  width: 84px;
+  height: 84px;
+  border-radius: 1rem;
+}
+
 .color-label {
   font-weight: 700;
   text-transform: capitalize;
+}
+
+.simulation-layout-fullscreen .color-label,
+.simulation-layout-fullscreen .symbol-tile span,
+.simulation-layout-fullscreen .focus-response-option {
+  font-size: 1.18rem;
 }
 
 .shape-card {
@@ -704,6 +813,11 @@ input[type='text'][readonly] {
   width: 56px;
   height: 56px;
   border: 2px solid rgba(23, 35, 48, 0.35);
+}
+
+.simulation-layout-fullscreen .shape-visual {
+  width: 94px;
+  height: 94px;
 }
 
 .shape-visual.circle {
@@ -724,9 +838,20 @@ input[type='text'][readonly] {
   background: transparent;
 }
 
+.simulation-layout-fullscreen .shape-visual.triangle {
+  border-left-width: 52px;
+  border-right-width: 52px;
+  border-bottom-width: 92px;
+}
+
 .shape-visual.diamond {
   transform: rotate(45deg);
   border-radius: 0.2rem;
+}
+
+.simulation-layout-fullscreen .symbol-icon {
+  width: 64px;
+  height: 64px;
 }
 
 .test-status {

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePromptVoice } from '../hooks/usePromptVoice';
 import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -29,11 +30,17 @@ function shiftedIndex(index: number, length: number, vision: number, synesthesia
   return (index + shift + length) % length;
 }
 
-export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
+export function ColorSelectionTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
   const [target, setTarget] = useState<ColorOption>(() => nextColor());
   const [displayOptions, setDisplayOptions] = useState<ColorOption[]>(() => shuffleArray(COLOR_OPTIONS));
-  const [status, setStatus] = useState('Select the requested color swatch.');
+  const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching color.');
   const [tick, setTick] = useState(0);
+  const responseTimeoutRef = useRef<number | null>(null);
+  const advanceTimeoutRef = useRef<number | null>(null);
+  const { speakNo } = usePromptVoice(`Touch ${target.name}.`, {
+    enabled: audioEnabled,
+    paused,
+  });
 
   useEffect(() => {
     if (paused) return;
@@ -52,13 +59,28 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
     };
   }, [channels.stim, channels.vision, paused]);
 
+  useEffect(() => {
+    return () => {
+      if (responseTimeoutRef.current) {
+        window.clearTimeout(responseTimeoutRef.current);
+      }
+      if (advanceTimeoutRef.current) {
+        window.clearTimeout(advanceTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleColorChoice = (index: number): void => {
     if (paused) return;
 
     onEvent({ type: 'attempt' });
     setStatus('Processing response...');
 
-    window.setTimeout(() => {
+    if (responseTimeoutRef.current) {
+      window.clearTimeout(responseTimeoutRef.current);
+    }
+
+    responseTimeoutRef.current = window.setTimeout(() => {
       const driftedIndex = shiftedIndex(index, displayOptions.length, channels.vision, channels.synesthesia);
       let resolvedIndex = driftedIndex;
 
@@ -67,15 +89,32 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
       }
 
       const registered = displayOptions[resolvedIndex];
+      const intended = displayOptions[index];
       if (registered.name === target.name) {
         setStatus(`Response registered for ${target.name}. Next color loaded.`);
         onEvent({ type: 'response', note: `Color target matched: ${target.name}.` });
+        setTarget(nextColor(target.name));
       } else {
-        setStatus(`Interference registered ${registered.name} while target was ${target.name}.`);
-        onEvent({ type: 'disruption', note: 'Color response shifted by visual/motor interference.' });
-      }
+        const directMiss = intended.name !== target.name;
+        setStatus(`No. ${registered.name} was captured while ${target.name} was requested.`);
+        onEvent({
+          type: 'incorrect',
+          note: directMiss
+            ? `Incorrect color selected while ${target.name} was requested.`
+            : `Color response resolved incorrectly while targeting ${target.name}.`,
+        });
+        if (!directMiss) {
+          onEvent({ type: 'disruption', note: 'Color response shifted by visual/motor interference.' });
+        }
 
-      setTarget(nextColor(target.name));
+        speakNo();
+        if (advanceTimeoutRef.current) {
+          window.clearTimeout(advanceTimeoutRef.current);
+        }
+        advanceTimeoutRef.current = window.setTimeout(() => {
+          setTarget(nextColor(target.name));
+        }, 720);
+      }
     }, getActivationDelay(channels.apraxia));
   };
 
@@ -84,12 +123,18 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
       <header className="test-header">
         <h3>Color Selection Test</h3>
         <p>
-          Select a named color while swatches drift and color perception shifts. This test focuses on targeting
-          and sensory conflict rather than speed.
+          Spoken prompts now pair with a color swatch so the task stays symbol-plus-word instead of text-only.
+          This test focuses on targeting and sensory conflict rather than speed.
         </p>
       </header>
 
-      <div className="target-callout">Select color: {target.name}</div>
+      <div className="target-callout prompt-callout">
+        <span className="prompt-color-chip" style={{ backgroundColor: target.hex }} aria-hidden="true" />
+        <div className="prompt-callout-copy">
+          <span className="prompt-callout-label">Current prompt</span>
+          <strong>Touch {target.name}</strong>
+        </div>
+      </div>
 
       <div className="color-grid">
         {displayOptions.map((option, index) => {
@@ -102,6 +147,7 @@ export function ColorSelectionTest({ channels, paused, onEvent }: TestProps) {
               key={option.name}
               type="button"
               className="color-swatch"
+              aria-label={`Touch ${option.name}`}
               onClick={() => handleColorChoice(index)}
               style={{
                 transform: `translate(${drift.x.toFixed(1)}px, ${drift.y.toFixed(1)}px) scale(${pulse.toFixed(3)})`,

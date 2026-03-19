@@ -13,11 +13,15 @@ interface AudioNodes {
   masterGain: GainNode;
   buzzOsc: OscillatorNode;
   buzzGain: GainNode;
+  fluorescentOsc: OscillatorNode;
+  fluorescentGain: GainNode;
   toneOsc: OscillatorNode;
   toneGain: GainNode;
   noiseFilter: BiquadFilterNode;
   noiseSource: AudioBufferSourceNode;
   noiseGain: GainNode;
+  crackleFilter: BiquadFilterNode;
+  crackleGain: GainNode;
 }
 
 function createNoiseBuffer(context: AudioContext): AudioBuffer {
@@ -46,6 +50,13 @@ function setupAudioGraph(): AudioNodes {
   buzzGain.gain.value = 0;
   buzzOsc.connect(buzzGain).connect(masterGain);
 
+  const fluorescentOsc = context.createOscillator();
+  fluorescentOsc.type = 'square';
+  fluorescentOsc.frequency.value = 118;
+  const fluorescentGain = context.createGain();
+  fluorescentGain.gain.value = 0;
+  fluorescentOsc.connect(fluorescentGain).connect(masterGain);
+
   const toneOsc = context.createOscillator();
   toneOsc.type = 'sine';
   toneOsc.frequency.value = 212;
@@ -60,12 +71,21 @@ function setupAudioGraph(): AudioNodes {
   const noiseGain = context.createGain();
   noiseGain.gain.value = 0;
 
+  const crackleFilter = context.createBiquadFilter();
+  crackleFilter.type = 'highpass';
+  crackleFilter.frequency.value = 2300;
+
+  const crackleGain = context.createGain();
+  crackleGain.gain.value = 0;
+
   const noiseSource = context.createBufferSource();
   noiseSource.buffer = createNoiseBuffer(context);
   noiseSource.loop = true;
   noiseSource.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+  noiseSource.connect(crackleFilter).connect(crackleGain).connect(masterGain);
 
   buzzOsc.start();
+  fluorescentOsc.start();
   toneOsc.start();
   noiseSource.start();
 
@@ -74,11 +94,15 @@ function setupAudioGraph(): AudioNodes {
     masterGain,
     buzzOsc,
     buzzGain,
+    fluorescentOsc,
+    fluorescentGain,
     toneOsc,
     toneGain,
     noiseFilter,
     noiseSource,
     noiseGain,
+    crackleFilter,
+    crackleGain,
   };
 }
 
@@ -101,6 +125,7 @@ export function useAudioEngine({
       const nodes = nodesRef.current;
       if (!nodes) return;
       nodes.buzzOsc.stop();
+      nodes.fluorescentOsc.stop();
       nodes.toneOsc.stop();
       nodes.noiseSource.stop();
       void nodes.context.close();
@@ -125,11 +150,15 @@ export function useAudioEngine({
 
     nodes.masterGain.gain.setTargetAtTime(active ? 0.95 : 0, nodes.context.currentTime, 0.06);
     nodes.buzzGain.gain.setTargetAtTime(active ? hearingMix * 0.09 : 0, nodes.context.currentTime, 0.08);
+    nodes.fluorescentGain.gain.setTargetAtTime(active ? hearingMix * 0.024 : 0, nodes.context.currentTime, 0.05);
     nodes.toneGain.gain.setTargetAtTime(active ? hearingMix * 0.075 : 0, nodes.context.currentTime, 0.08);
     nodes.noiseGain.gain.setTargetAtTime(active ? hearingMix * 0.11 : 0, nodes.context.currentTime, 0.08);
+    nodes.crackleGain.gain.setTargetAtTime(active ? hearingMix * 0.01 : 0, nodes.context.currentTime, 0.04);
 
+    nodes.fluorescentOsc.frequency.setTargetAtTime(112 + hearingLevel * 0.22, nodes.context.currentTime, 0.08);
     nodes.toneOsc.frequency.setTargetAtTime(150 + hearingLevel * 2.8, nodes.context.currentTime, 0.1);
     nodes.noiseFilter.frequency.setTargetAtTime(160 + hearingLevel * 6.4, nodes.context.currentTime, 0.1);
+    nodes.crackleFilter.frequency.setTargetAtTime(1800 + hearingLevel * 16, nodes.context.currentTime, 0.08);
 
     if (!active || hearingLevel < 8) {
       if (modulationRef.current) {
@@ -148,10 +177,21 @@ export function useAudioEngine({
 
         currentNodes.toneOsc.frequency.setTargetAtTime(130 + jitter * 3.4, currentTime, 0.07);
         currentNodes.buzzOsc.frequency.setTargetAtTime(68 + jitter * 1.8, currentTime, 0.07);
+        currentNodes.fluorescentOsc.frequency.setTargetAtTime(105 + jitter * 0.45, currentTime, 0.06);
         currentNodes.noiseGain.gain.setTargetAtTime(
           Math.max(0.01, hearingLevel / 700 + Math.random() * (hearingLevel / 800)),
           currentTime,
           0.09,
+        );
+        currentNodes.fluorescentGain.gain.setTargetAtTime(
+          Math.max(0.004, hearingLevel / 2400 + (Math.random() > 0.62 ? hearingLevel / 880 : 0)),
+          currentTime,
+          0.04,
+        );
+        currentNodes.crackleGain.gain.setTargetAtTime(
+          Math.max(0.002, hearingLevel / 3200 + (Math.random() > 0.72 ? hearingLevel / 1050 : 0)),
+          currentTime,
+          0.03,
         );
       }, 290);
     }

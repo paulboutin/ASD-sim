@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePromptVoice } from '../hooks/usePromptVoice';
 import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -67,11 +68,18 @@ function noisyIndex(index: number, total: number, vision: number): number {
   return (index + offset + total) % total;
 }
 
-export function RecognitionTest({ channels, paused, onEvent }: TestProps) {
+export function RecognitionTest({ channels, paused, audioEnabled, onEvent }: TestProps) {
   const [prompt, setPrompt] = useState<RecognitionPrompt>(() => nextPrompt());
   const [displayOptions, setDisplayOptions] = useState<ShapeOption[]>(() => shuffleArray(prompt.options));
-  const [status, setStatus] = useState('Identify the requested shape and color.');
+  const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching shape-color card.');
   const [tick, setTick] = useState(0);
+  const responseTimeoutRef = useRef<number | null>(null);
+  const advanceTimeoutRef = useRef<number | null>(null);
+  const answerOption = prompt.options.find((option) => option.id === prompt.answerId) ?? prompt.options[0];
+  const { speakNo } = usePromptVoice(`Touch ${answerOption.colorName} ${answerOption.shape}.`, {
+    enabled: audioEnabled,
+    paused,
+  });
 
   useEffect(() => {
     if (paused) return;
@@ -91,13 +99,28 @@ export function RecognitionTest({ channels, paused, onEvent }: TestProps) {
     };
   }, [channels.stim, channels.vision, paused]);
 
+  useEffect(() => {
+    return () => {
+      if (responseTimeoutRef.current) {
+        window.clearTimeout(responseTimeoutRef.current);
+      }
+      if (advanceTimeoutRef.current) {
+        window.clearTimeout(advanceTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleChoice = (index: number): void => {
     if (paused) return;
 
     onEvent({ type: 'attempt' });
     setStatus('Processing response...');
 
-    window.setTimeout(() => {
+    if (responseTimeoutRef.current) {
+      window.clearTimeout(responseTimeoutRef.current);
+    }
+
+    responseTimeoutRef.current = window.setTimeout(() => {
       const shiftedIndex = noisyIndex(index, displayOptions.length, channels.vision + channels.synesthesia * 0.25);
       let resolvedIndex = shiftedIndex;
 
@@ -106,18 +129,37 @@ export function RecognitionTest({ channels, paused, onEvent }: TestProps) {
       }
 
       const resolved = displayOptions[resolvedIndex];
+      const intended = displayOptions[index];
 
       if (resolved.id === prompt.answerId) {
-        setStatus(`Response registered for "${prompt.question.toLowerCase().replace('select: ', '')}".`);
+        setStatus(`Response registered for "${answerOption.colorName} ${answerOption.shape}".`);
         onEvent({ type: 'response', note: 'Recognition response matched prompt.' });
+        const next = nextPrompt(prompt.id);
+        setPrompt(next);
+        setDisplayOptions(shuffleArray(next.options));
       } else {
-        setStatus('Interference shifted the registered selection away from the intended target.');
-        onEvent({ type: 'disruption', note: 'Recognition mismatch due to layered interference.' });
-      }
+        const directMiss = intended.id !== prompt.answerId;
+        setStatus(`No. ${resolved.colorName} ${resolved.shape} was registered instead.`);
+        onEvent({
+          type: 'incorrect',
+          note: directMiss
+            ? 'Incorrect recognition choice selected.'
+            : 'Recognition response resolved incorrectly under layered interference.',
+        });
+        if (!directMiss) {
+          onEvent({ type: 'disruption', note: 'Recognition mismatch due to layered interference.' });
+        }
 
-      const next = nextPrompt(prompt.id);
-      setPrompt(next);
-      setDisplayOptions(shuffleArray(next.options));
+        speakNo();
+        if (advanceTimeoutRef.current) {
+          window.clearTimeout(advanceTimeoutRef.current);
+        }
+        advanceTimeoutRef.current = window.setTimeout(() => {
+          const next = nextPrompt(prompt.id);
+          setPrompt(next);
+          setDisplayOptions(shuffleArray(next.options));
+        }, 720);
+      }
     }, getActivationDelay(channels.apraxia));
   };
 
@@ -125,10 +167,27 @@ export function RecognitionTest({ channels, paused, onEvent }: TestProps) {
     <section className="test-card" aria-live="polite">
       <header className="test-header">
         <h3>Object/Color/Shape Recognition Test</h3>
-        <p>Choose the requested shape-color target while options swap positions in motion.</p>
+        <p>Choose the requested shape-color target using paired spoken and visual prompts while options swap.</p>
       </header>
 
-      <div className="target-callout">{prompt.question}</div>
+      <div className="target-callout prompt-callout">
+        <span className="prompt-shape-chip" aria-hidden="true">
+          <span
+            className={`shape-visual prompt-shape ${answerOption.shape}`}
+            style={
+              answerOption.shape === 'triangle'
+                ? { color: answerOption.colorHex }
+                : { backgroundColor: answerOption.colorHex }
+            }
+          />
+        </span>
+        <div className="prompt-callout-copy">
+          <span className="prompt-callout-label">Current prompt</span>
+          <strong>
+            Touch {answerOption.colorName} {answerOption.shape}
+          </strong>
+        </div>
+      </div>
 
       <div className="recognition-grid">
         {displayOptions.map((option, index) => {
@@ -138,7 +197,7 @@ export function RecognitionTest({ channels, paused, onEvent }: TestProps) {
               key={option.id}
               type="button"
               className="recognition-option shape-card"
-              aria-label={`${option.colorName} ${option.shape}`}
+              aria-label={`Touch ${option.colorName} ${option.shape}`}
               onClick={() => handleChoice(index)}
               style={{ transform: `translate(${drift.x.toFixed(1)}px, ${drift.y.toFixed(1)}px)` }}
             >

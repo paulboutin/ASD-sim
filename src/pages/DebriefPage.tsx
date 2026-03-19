@@ -37,7 +37,7 @@ export function DebriefPage() {
         <p>Test: {debriefSnapshot.testTitle}</p>
         <ul>
           <li>Attempts: {debriefSnapshot.attempts}</li>
-          <li>Responses captured: {debriefSnapshot.responses}</li>
+          <li>Incorrect responses: {debriefSnapshot.incorrectResponses}</li>
           <li>Disruptions observed: {debriefSnapshot.disruptions}</li>
           <li>Timed prompts shown: {debriefSnapshot.prompts}</li>
         </ul>

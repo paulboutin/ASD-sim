@@ -12,6 +12,7 @@ import { useSimulation } from '../state/SimulationContext';
 interface SessionStats {
   attempts: number;
   responses: number;
+  incorrectResponses: number;
   disruptions: number;
   prompts: number;
   notes: string[];
@@ -20,6 +21,7 @@ interface SessionStats {
 const INITIAL_STATS: SessionStats = {
   attempts: 0,
   responses: 0,
+  incorrectResponses: 0,
   disruptions: 0,
   prompts: 0,
   notes: [],
@@ -33,6 +35,8 @@ function nextStats(stats: SessionStats, event: SimulationEvent): SessionStats {
       return { ...stats, attempts: stats.attempts + 1, notes };
     case 'response':
       return { ...stats, responses: stats.responses + 1, notes };
+    case 'incorrect':
+      return { ...stats, incorrectResponses: stats.incorrectResponses + 1, notes };
     case 'disruption':
       return { ...stats, disruptions: stats.disruptions + 1, notes };
     case 'prompt':
@@ -103,6 +107,7 @@ export function SimulationPage() {
       channelLevels: channels,
       attempts: stats.attempts,
       responses: stats.responses,
+      incorrectResponses: stats.incorrectResponses,
       disruptions: stats.disruptions,
       prompts: stats.prompts,
       notes: stats.notes,
@@ -146,8 +151,8 @@ export function SimulationPage() {
       {muted ? (
         <section className="panel audio-note">
           <p>
-            Audio interference is currently muted. Use <strong>Unmute Audio</strong> to hear layered hearing
-            distortion.
+            Audio output is currently muted. Use <strong>Unmute Audio</strong> to hear spoken prompts and
+            layered hearing distortion.
           </p>
         </section>
       ) : null}
@@ -156,7 +161,13 @@ export function SimulationPage() {
         <ChannelReadout channels={channels} />
 
         <VisualEffectsLayer vision={channels.vision} synesthesia={channels.synesthesia} tick={tick}>
-          <TestComponent key={sessionKey} channels={channels} paused={paused} onEvent={handleEvent} />
+          <TestComponent
+            key={sessionKey}
+            channels={channels}
+            paused={paused}
+            audioEnabled={!muted}
+            onEvent={handleEvent}
+          />
         </VisualEffectsLayer>
       </section>
 
@@ -164,7 +175,7 @@ export function SimulationPage() {
         <h2>Current Session Activity</h2>
         <ul>
           <li>Attempts: {stats.attempts}</li>
-          <li>Responses captured: {stats.responses}</li>
+          <li>Incorrect responses: {stats.incorrectResponses}</li>
           <li>Disruptions observed: {stats.disruptions}</li>
           <li>Timed prompts shown: {stats.prompts}</li>
         </ul>

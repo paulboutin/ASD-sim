@@ -321,9 +321,17 @@ input[type='text'][readonly] {
   border-radius: 1rem;
 }
 
+.visual-content {
+  position: relative;
+  z-index: 0;
+  transform-origin: center center;
+}
+
 .visual-noise,
 .visual-ghost,
-.visual-shimmer {
+.visual-shimmer,
+.visual-convex,
+.visual-fluorescent {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -345,6 +353,25 @@ input[type='text'][readonly] {
 .visual-shimmer {
   background: linear-gradient(115deg, rgba(253, 210, 135, 0.28), rgba(128, 189, 233, 0.16));
   animation: shimmer 3.4s ease-in-out infinite;
+}
+
+.visual-convex {
+  background:
+    radial-gradient(circle at 50% 44%, transparent 0 34%, rgba(255, 255, 255, 0.08) 56%, rgba(13, 25, 38, 0.16) 100%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent 60%);
+  mix-blend-mode: multiply;
+}
+
+.visual-fluorescent {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(234, 247, 255, 0.08) 32%, rgba(18, 29, 41, 0.14) 100%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0 10px,
+      rgba(255, 255, 255, 0.02) 10px 24px,
+      rgba(0, 0, 0, 0.06) 24px 28px
+    );
+  mix-blend-mode: screen;
 }
 
 @keyframes shimmer {
@@ -380,6 +407,59 @@ input[type='text'][readonly] {
   padding: 0.7rem 0.85rem;
   background: rgba(15, 95, 143, 0.08);
   font-weight: 700;
+}
+
+.prompt-callout {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.prompt-callout-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.prompt-callout-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prompt-callout strong {
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+
+.prompt-color-chip,
+.prompt-symbol-chip,
+.prompt-shape-chip {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(16, 37, 58, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.prompt-color-chip {
+  border-radius: 0.8rem;
+}
+
+.prompt-shape {
+  width: 34px;
+  height: 34px;
+}
+
+.prompt-shape.triangle {
+  border-left-width: 19px;
+  border-right-width: 19px;
+  border-bottom-width: 34px;
 }
 
 .aac-grid,

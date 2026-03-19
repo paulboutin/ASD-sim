@@ -1,6 +1,6 @@
 import type { ChannelLevels } from '../types/simulation';
 
-export type SimulationEventType = 'attempt' | 'response' | 'disruption' | 'prompt';
+export type SimulationEventType = 'attempt' | 'response' | 'incorrect' | 'disruption' | 'prompt';
 
 export interface SimulationEvent {
   type: SimulationEventType;
@@ -10,5 +10,6 @@ export interface SimulationEvent {
 export interface TestProps {
   channels: ChannelLevels;
   paused: boolean;
+  audioEnabled: boolean;
   onEvent: (event: SimulationEvent) => void;
 }

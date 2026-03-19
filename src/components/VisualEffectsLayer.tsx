@@ -12,11 +12,15 @@ export function VisualEffectsLayer({ vision, synesthesia, tick, children }: Visu
   const profile = getVisualProfile(vision, synesthesia, tick);
 
   return (
-    <div className="visual-shell" style={profile.containerStyle}>
-      {children}
+    <div className="visual-shell" style={profile.shellStyle}>
+      <div className="visual-content" style={profile.contentStyle}>
+        {children}
+      </div>
       <div className="visual-noise" style={{ opacity: profile.noiseOpacity }} />
       <div className="visual-ghost" style={{ opacity: profile.ghostOpacity }} />
       <div className="visual-shimmer" style={{ opacity: profile.shimmerOpacity }} />
+      <div className="visual-convex" style={{ opacity: profile.convexOpacity }} />
+      <div className="visual-fluorescent" style={{ opacity: profile.fluorescentOpacity }} />
     </div>
   );
 }

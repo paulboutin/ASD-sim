@@ -11,6 +11,7 @@ export interface DebriefSnapshot {
   notes: string[];
   attempts: number;
   responses: number;
+  incorrectResponses: number;
   disruptions: number;
   prompts: number;
 }

@@ -3,12 +3,21 @@ import type { ChannelLevels } from '../types/simulation';
 
 interface SliderPanelProps {
   levels: ChannelLevels;
+  intrusiveThoughtsEnabled: boolean;
   onChange: (key: keyof ChannelLevels, value: number) => void;
+  onSetIntrusiveThoughtsEnabled: (enabled: boolean) => void;
   onReset: () => void;
   embedded?: boolean;
 }
 
-export function SliderPanel({ levels, onChange, onReset, embedded = false }: SliderPanelProps) {
+export function SliderPanel({
+  levels,
+  intrusiveThoughtsEnabled,
+  onChange,
+  onSetIntrusiveThoughtsEnabled,
+  onReset,
+  embedded = false,
+}: SliderPanelProps) {
   return (
     <section className={embedded ? 'slider-panel-embedded' : 'panel'}>
       <div className="panel-header-row">
@@ -41,6 +50,30 @@ export function SliderPanel({ levels, onChange, onReset, embedded = false }: Sli
           </label>
         ))}
       </div>
+
+      <section className="content-toggle-card">
+        <div className="content-toggle-header">
+          <div>
+            <h3>Optional Audio Content</h3>
+            <p>
+              Adds low-volume hostile internal-thought phrases to the hearing channel. This is off by default and
+              should only be used deliberately.
+            </p>
+          </div>
+          <label className="toggle-checkbox">
+            <input
+              type="checkbox"
+              checked={intrusiveThoughtsEnabled}
+              onChange={(event) => onSetIntrusiveThoughtsEnabled(event.target.checked)}
+            />
+            <span>Enable intrusive-thought audio</span>
+          </label>
+        </div>
+        <p className="content-warning">
+          Content warning: includes whispered phrases such as &quot;you are so stupid&quot;, &quot;you will never
+          be free&quot;, and &quot;why can&apos;t you just point&quot;. Disable immediately if it becomes too intense.
+        </p>
+      </section>
     </section>
   );
 }

@@ -229,6 +229,51 @@ nav a.active {
   gap: 0.9rem;
 }
 
+.content-toggle-card {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid #d9c7af;
+  border-radius: 0.85rem;
+  padding: 0.85rem 0.9rem;
+  background: linear-gradient(180deg, #fffaf3, #fff4e6);
+}
+
+.content-toggle-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.content-toggle-header h3 {
+  margin: 0 0 0.25rem;
+}
+
+.content-toggle-header p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--muted);
+}
+
+.toggle-checkbox {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  font-weight: 700;
+}
+
+.toggle-checkbox input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.content-warning {
+  margin: 0;
+  color: #784d17;
+  font-size: 0.94rem;
+}
+
 .slider-row {
   display: grid;
   gap: 0.28rem;

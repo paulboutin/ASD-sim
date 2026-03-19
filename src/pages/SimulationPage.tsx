@@ -49,8 +49,17 @@ function nextStats(stats: SessionStats, event: SimulationEvent): SessionStats {
 export function SimulationPage() {
   const navigate = useNavigate();
   const {
-    state: { channels, muted, paused, restartNonce, selectedTest, warningsAccepted },
+    state: {
+      channels,
+      muted,
+      paused,
+      intrusiveThoughtsEnabled,
+      restartNonce,
+      selectedTest,
+      warningsAccepted,
+    },
     setChannel,
+    setIntrusiveThoughtsEnabled,
     setMuted,
     setPaused,
     resetChannels,
@@ -88,6 +97,7 @@ export function SimulationPage() {
     paused,
     hearingLevel: channels.hearing,
     synesthesiaLevel: channels.synesthesia,
+    intrusiveThoughtsEnabled,
   });
 
   const handleEvent = useCallback(
@@ -105,6 +115,7 @@ export function SimulationPage() {
       testId: selectedTest,
       testTitle: test.label,
       channelLevels: channels,
+      intrusiveThoughtsEnabled,
       attempts: stats.attempts,
       responses: stats.responses,
       incorrectResponses: stats.incorrectResponses,
@@ -144,7 +155,14 @@ export function SimulationPage() {
 
       {settingsOpen ? (
         <section className="panel settings-drawer">
-          <SliderPanel levels={channels} onChange={setChannel} onReset={resetChannels} embedded />
+          <SliderPanel
+            levels={channels}
+            intrusiveThoughtsEnabled={intrusiveThoughtsEnabled}
+            onChange={setChannel}
+            onSetIntrusiveThoughtsEnabled={setIntrusiveThoughtsEnabled}
+            onReset={resetChannels}
+            embedded
+          />
         </section>
       ) : null}
 

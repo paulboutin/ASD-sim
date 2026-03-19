@@ -8,6 +8,7 @@ export interface DebriefSnapshot {
   testId: TestId;
   testTitle: string;
   channelLevels: ChannelLevels;
+  intrusiveThoughtsEnabled: boolean;
   notes: string[];
   attempts: number;
   responses: number;

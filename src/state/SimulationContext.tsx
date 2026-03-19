@@ -16,6 +16,7 @@ interface SimulationState {
   warningsAccepted: boolean;
   muted: boolean;
   paused: boolean;
+  intrusiveThoughtsEnabled: boolean;
   restartNonce: number;
   debriefSnapshot: DebriefSnapshot | null;
 }
@@ -28,6 +29,7 @@ type Action =
   | { type: 'accept-warnings' }
   | { type: 'set-muted'; muted: boolean }
   | { type: 'set-paused'; paused: boolean }
+  | { type: 'set-intrusive-thoughts'; enabled: boolean }
   | { type: 'restart-session' }
   | { type: 'save-debrief'; payload: DebriefSnapshot }
   | { type: 'clear-debrief' };
@@ -38,6 +40,7 @@ const initialState: SimulationState = {
   warningsAccepted: false,
   muted: false,
   paused: false,
+  intrusiveThoughtsEnabled: false,
   restartNonce: 0,
   debriefSnapshot: null,
 };
@@ -82,6 +85,11 @@ function simulationReducer(state: SimulationState, action: Action): SimulationSt
         ...state,
         paused: action.paused,
       };
+    case 'set-intrusive-thoughts':
+      return {
+        ...state,
+        intrusiveThoughtsEnabled: action.enabled,
+      };
     case 'restart-session':
       return {
         ...state,
@@ -112,6 +120,7 @@ interface SimulationContextValue {
   acceptWarnings: () => void;
   setMuted: (muted: boolean) => void;
   setPaused: (paused: boolean) => void;
+  setIntrusiveThoughtsEnabled: (enabled: boolean) => void;
   restartSession: () => void;
   saveDebrief: (snapshot: DebriefSnapshot) => void;
   clearDebrief: () => void;
@@ -136,6 +145,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       acceptWarnings: () => dispatch({ type: 'accept-warnings' }),
       setMuted: (muted) => dispatch({ type: 'set-muted', muted }),
       setPaused: (paused) => dispatch({ type: 'set-paused', paused }),
+      setIntrusiveThoughtsEnabled: (enabled) => dispatch({ type: 'set-intrusive-thoughts', enabled }),
       restartSession: () => dispatch({ type: 'restart-session' }),
       saveDebrief: (payload) => dispatch({ type: 'save-debrief', payload }),
       clearDebrief: () => dispatch({ type: 'clear-debrief' }),

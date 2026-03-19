@@ -9,10 +9,11 @@ import { buildPresetQuery, loadPresetFromLocation } from '../utils/presets';
 export function SetupPage() {
   const navigate = useNavigate();
   const {
-    state: { channels, selectedTest },
+    state: { channels, intrusiveThoughtsEnabled, selectedTest },
     applyLevels,
     resetChannels,
     setChannel,
+    setIntrusiveThoughtsEnabled,
     setTest,
   } = useSimulation();
   const loadedPreset = useMemo(
@@ -44,7 +45,13 @@ export function SetupPage() {
 
       <TestSelector selectedTest={selectedTest} onSelect={setTest} />
 
-      <SliderPanel levels={channels} onChange={setChannel} onReset={resetChannels} />
+      <SliderPanel
+        levels={channels}
+        intrusiveThoughtsEnabled={intrusiveThoughtsEnabled}
+        onChange={setChannel}
+        onSetIntrusiveThoughtsEnabled={setIntrusiveThoughtsEnabled}
+        onReset={resetChannels}
+      />
 
       <section className="panel">
         <h2>Preset Link (Query-string Ready)</h2>

@@ -51,6 +51,7 @@ export function DebriefPage() {
           <li>Hearing distortions: {debriefSnapshot.channelLevels.hearing}</li>
           <li>Vision distortions: {debriefSnapshot.channelLevels.vision}</li>
           <li>Cross-sensory interference: {debriefSnapshot.channelLevels.synesthesia}</li>
+          <li>Intrusive-thought audio: {debriefSnapshot.intrusiveThoughtsEnabled ? 'Enabled' : 'Disabled'}</li>
         </ul>
       </section>
 

@@ -6,6 +6,7 @@ interface AudioControls {
   paused: boolean;
   hearingLevel: number;
   synesthesiaLevel: number;
+  intrusiveThoughtsEnabled: boolean;
 }
 
 interface AudioNodes {
@@ -22,6 +23,32 @@ interface AudioNodes {
   noiseGain: GainNode;
   crackleFilter: BiquadFilterNode;
   crackleGain: GainNode;
+}
+
+const INTRUSIVE_THOUGHTS = [
+  'you are so stupid',
+  'you will never be free',
+  "why can't you just point",
+];
+
+const WHISPER_VOICE_HINTS = ['fred', 'daniel', 'alex', 'david', 'male'];
+
+function pickIntrusiveVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  if (!voices.length) return null;
+
+  const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith('en'));
+  const preferredPool = englishVoices.length ? englishVoices : voices;
+
+  return (
+    preferredPool.find((voice) =>
+      WHISPER_VOICE_HINTS.some((hint) => voice.name.toLowerCase().includes(hint)),
+    ) ?? preferredPool[0]
+  );
+}
+
+function nextIntrusiveDelay(hearingLevel: number): number {
+  const base = Math.max(6500, 14000 - hearingLevel * 55);
+  return Math.round(base + Math.random() * 3200);
 }
 
 function createNoiseBuffer(context: AudioContext): AudioBuffer {
@@ -112,9 +139,11 @@ export function useAudioEngine({
   paused,
   hearingLevel,
   synesthesiaLevel,
+  intrusiveThoughtsEnabled,
 }: AudioControls): { triggerCrossSensoryTone: () => void } {
   const nodesRef = useRef<AudioNodes | null>(null);
   const modulationRef = useRef<number | null>(null);
+  const intrusiveTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined' || nodesRef.current) return;
@@ -132,6 +161,10 @@ export function useAudioEngine({
       if (modulationRef.current) {
         window.clearInterval(modulationRef.current);
         modulationRef.current = null;
+      }
+      if (intrusiveTimerRef.current) {
+        window.clearTimeout(intrusiveTimerRef.current);
+        intrusiveTimerRef.current = null;
       }
       nodesRef.current = null;
     };
@@ -196,6 +229,49 @@ export function useAudioEngine({
       }, 290);
     }
   }, [enabled, muted, paused, hearingLevel]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (intrusiveTimerRef.current) {
+      window.clearTimeout(intrusiveTimerRef.current);
+      intrusiveTimerRef.current = null;
+    }
+
+    const active = enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12;
+    if (!active) return;
+
+    const scheduleThought = (): void => {
+      intrusiveTimerRef.current = window.setTimeout(() => {
+        const stillActive = enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12;
+        if (!stillActive) return;
+
+        const synthesis = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(
+          INTRUSIVE_THOUGHTS[Math.floor(Math.random() * INTRUSIVE_THOUGHTS.length)],
+        );
+        const voice = pickIntrusiveVoice(synthesis.getVoices());
+
+        utterance.voice = voice;
+        utterance.lang = voice?.lang ?? 'en-US';
+        utterance.pitch = 0.62;
+        utterance.rate = 0.72;
+        utterance.volume = Math.min(0.38, 0.12 + hearingLevel / 340);
+
+        synthesis.speak(utterance);
+        scheduleThought();
+      }, nextIntrusiveDelay(hearingLevel));
+    };
+
+    scheduleThought();
+
+    return () => {
+      if (intrusiveTimerRef.current) {
+        window.clearTimeout(intrusiveTimerRef.current);
+        intrusiveTimerRef.current = null;
+      }
+    };
+  }, [enabled, muted, paused, hearingLevel, intrusiveThoughtsEnabled]);
 
   const triggerCrossSensoryTone = useCallback(() => {
     const nodes = nodesRef.current;

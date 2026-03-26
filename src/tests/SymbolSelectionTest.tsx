@@ -7,7 +7,6 @@ import {
   getTargetDrift,
   getViewportRock,
   shouldDropIntent,
-  shouldRequireIntentConfirm,
 } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -35,8 +34,6 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching symbol.');
   const [gridItems, setGridItems] = useState(() => shuffleArray(SYMBOL_ITEMS));
   const [tick, setTick] = useState(0);
-  const [pendingIntent, setPendingIntent] = useState<string | null>(null);
-  const pendingTimeoutRef = useRef<number | null>(null);
   const responseTimeoutRef = useRef<number | null>(null);
   const advanceTimeoutRef = useRef<number | null>(null);
   const targetItem = SYMBOL_ITEMS.find((item) => item.label === target) ?? SYMBOL_ITEMS[0];
@@ -64,9 +61,6 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
 
   useEffect(() => {
     return () => {
-      if (pendingTimeoutRef.current) {
-        window.clearTimeout(pendingTimeoutRef.current);
-      }
       if (responseTimeoutRef.current) {
         window.clearTimeout(responseTimeoutRef.current);
       }
@@ -82,23 +76,6 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
     if (paused) return;
 
     onEvent({ type: 'attempt' });
-
-    if (shouldRequireIntentConfirm(channels.apraxia) && pendingIntent !== label) {
-      setPendingIntent(label);
-      setStatus('Motor-planning load is high. Select the same symbol again to confirm intent.');
-      if (pendingTimeoutRef.current) {
-        window.clearTimeout(pendingTimeoutRef.current);
-      }
-      pendingTimeoutRef.current = window.setTimeout(() => {
-        setPendingIntent(null);
-      }, 1650);
-      return;
-    }
-
-    if (pendingTimeoutRef.current) {
-      window.clearTimeout(pendingTimeoutRef.current);
-      pendingTimeoutRef.current = null;
-    }
 
     setStatus('Processing selection...');
 
@@ -135,8 +112,6 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
           setTarget(randomSymbol(target));
         }, 720);
       }
-
-      setPendingIntent(null);
     }, getActivationDelay(channels.apraxia));
   };
 

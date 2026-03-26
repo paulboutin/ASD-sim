@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SYMBOL_ITEMS, iconUrl } from '../config/symbols';
+import { SymbolIcon } from '../components/SymbolIcon';
+import { SYMBOL_ITEMS } from '../config/symbols';
 import { usePromptVoice } from '../hooks/usePromptVoice';
 import {
   getActivationDelay,
@@ -151,7 +152,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
 
       <div className="target-callout prompt-callout">
         <span className="prompt-symbol-chip" aria-hidden="true">
-          <img src={iconUrl(targetItem.icon)} alt="" className="symbol-icon" />
+          <SymbolIcon icon={targetItem.icon} className="symbol-icon" />
         </span>
         <div className="prompt-callout-copy">
           <span className="prompt-callout-label">Current prompt</span>
@@ -175,7 +176,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
               onClick={() => handleSymbolSelect(item.label)}
               style={{ transform: `translate(${drift.x.toFixed(1)}px, ${drift.y.toFixed(1)}px)` }}
             >
-              <img src={iconUrl(item.icon)} alt="" aria-hidden="true" className="symbol-icon" />
+              <SymbolIcon icon={item.icon} className="symbol-icon" />
               <span>{item.label}</span>
             </button>
           );

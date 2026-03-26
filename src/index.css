@@ -785,6 +785,9 @@ input[type='text'][readonly] {
 .symbol-icon {
   width: 32px;
   height: 32px;
+  display: block;
+  overflow: visible;
+  flex: 0 0 auto;
 }
 
 .color-grid {

@@ -17,7 +17,3 @@ export const SYMBOL_ITEMS: SymbolItem[] = [
   { label: 'all done', icon: 'all-done.svg' },
   { label: 'friend', icon: 'friend.svg' },
 ];
-
-export function iconUrl(icon: string): string {
-  return `${import.meta.env.BASE_URL}icons/${icon}`;
-}

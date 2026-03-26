@@ -3,6 +3,7 @@ import type { VisualMixLevels } from '../types/simulation';
 
 export interface VisualProfile {
   shellStyle: CSSProperties;
+  stageStyle: CSSProperties;
   contentStyle: CSSProperties;
   convexWarpScale: number;
   noiseOpacity: number;
@@ -36,23 +37,19 @@ export function getVisualProfile(
   const contrastDrop = 1 - (vision * 0.55 + ghostLevel * 0.45) / 300;
   const flicker = getFlickerPulse(flickerLevel, tick);
   const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1600) - flicker * 0.42;
-  const convexScaleX = 1 + convexLevel / 950;
-  const convexScaleY = 1 - convexLevel / 1700;
-  const shellScale = 1 + convexLevel / 1500;
 
   return {
-    shellStyle: {
-      transform: `scale(${shellScale.toFixed(3)})`,
-    },
+    shellStyle: {},
+    stageStyle: {},
     contentStyle: {
       filter: `blur(${blur.toFixed(2)}px) contrast(${contrastDrop.toFixed(2)}) brightness(${brightness.toFixed(2)})`,
-      transform: `scale(${(1 + vision / 1700).toFixed(3)}) scaleX(${convexScaleX.toFixed(3)}) scaleY(${convexScaleY.toFixed(3)})`,
+      transform: `scale(${(1 + vision / 1700).toFixed(3)})`,
     },
-    convexWarpScale: Math.round(convexLevel * 1.45),
+    convexWarpScale: Math.round(((convexLevel / 100) ** 1.15) * 260),
     noiseOpacity: Math.min(0.32, noiseLevel / 330),
     ghostOpacity: Math.min(0.45, ghostLevel / 250),
     shimmerOpacity: Math.min(0.35, synesthesia / 250),
-    convexOpacity: Math.min(0.56, convexLevel / 135),
+    convexOpacity: 0,
     fluorescentOpacity: Math.min(0.28, flicker),
   };
 }

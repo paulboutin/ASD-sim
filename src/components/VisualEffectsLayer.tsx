@@ -37,12 +37,12 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
       <rect width="100" height="100" fill="url(#g)"/>
     </svg>`,
   )}`;
+  const stageStyle = {
+    ...profile.stageStyle,
+    filter: profile.convexWarpScale > 0 ? `url(#${filterId})` : undefined,
+  };
   const contentStyle = {
     ...profile.contentStyle,
-    filter:
-      profile.convexWarpScale > 0
-        ? `url(#${filterId}) ${profile.contentStyle.filter ?? ''}`.trim()
-        : profile.contentStyle.filter,
   };
 
   return (
@@ -69,8 +69,8 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
             />
             <feBlend in="redMap" in2="greenMap" mode="screen" result="baseMap" />
             <feComponentTransfer in="baseMap" result="warpMap">
-              <feFuncR type="table" tableValues="0 0.04 0.11 0.21 0.36 0.5 0.64 0.79 0.89 0.96 1" />
-              <feFuncG type="table" tableValues="0 0.04 0.11 0.21 0.36 0.5 0.64 0.79 0.89 0.96 1" />
+              <feFuncR type="table" tableValues="0 0.01 0.04 0.12 0.28 0.5 0.72 0.88 0.96 0.99 1" />
+              <feFuncG type="table" tableValues="0 0.01 0.04 0.12 0.28 0.5 0.72 0.88 0.96 0.99 1" />
               <feFuncB type="identity" />
               <feFuncA type="identity" />
             </feComponentTransfer>
@@ -84,14 +84,16 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
           </filter>
         </defs>
       </svg>
-      <div className="visual-content" style={contentStyle}>
-        {children}
+      <div className="visual-stage" style={stageStyle}>
+        <div className="visual-content" style={contentStyle}>
+          {children}
+        </div>
+        <div className="visual-noise" style={{ opacity: profile.noiseOpacity }} />
+        <div className="visual-ghost" style={{ opacity: profile.ghostOpacity }} />
+        <div className="visual-shimmer" style={{ opacity: profile.shimmerOpacity }} />
+        <div className="visual-convex" style={{ opacity: profile.convexOpacity }} />
+        <div className="visual-fluorescent" style={{ opacity: profile.fluorescentOpacity }} />
       </div>
-      <div className="visual-noise" style={{ opacity: profile.noiseOpacity }} />
-      <div className="visual-ghost" style={{ opacity: profile.ghostOpacity }} />
-      <div className="visual-shimmer" style={{ opacity: profile.shimmerOpacity }} />
-      <div className="visual-convex" style={{ opacity: profile.convexOpacity }} />
-      <div className="visual-fluorescent" style={{ opacity: profile.fluorescentOpacity }} />
     </div>
   );
 }

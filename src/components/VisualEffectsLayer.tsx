@@ -52,10 +52,18 @@ const FRAGMENT_SHADER_SOURCE = `
 
     vec2 projected = ndcPos;
 
-    if (u_angle > 0.001 && relativeDistance > 0.0001) {
-      float halfAngle = u_angle * 0.5;
+    if (abs(u_angle) > 0.001 && relativeDistance > 0.0001) {
+      float halfAngle = abs(u_angle) * 0.5;
       float halfDistance = tan(halfAngle);
-      float factor = tan(relativeDistance * halfAngle) / max(relativeDistance * halfDistance, 0.0001);
+      float factor = 1.0;
+
+      if (u_angle > 0.0) {
+        factor = tan(relativeDistance * halfAngle) / max(relativeDistance * halfDistance, 0.0001);
+      } else {
+        float beta = atan(relativeDistance * halfDistance);
+        factor = beta / max(relativeDistance * halfAngle, 0.0001);
+      }
+
       projected = ndcPos * factor;
     }
 
@@ -209,10 +217,15 @@ function mapOutputPointToSource(
   const relativeDistance = Math.hypot(ndcX * aspect, ndcY) / Math.max(viewportLength, 0.0001);
 
   let factor = 1;
-  if (fisheyeAngle > 0.001 && relativeDistance > 0.0001) {
-    const halfAngle = fisheyeAngle * 0.5;
+  if (Math.abs(fisheyeAngle) > 0.001 && relativeDistance > 0.0001) {
+    const halfAngle = Math.abs(fisheyeAngle) * 0.5;
     const halfDistance = Math.tan(halfAngle);
-    factor = Math.tan(relativeDistance * halfAngle) / Math.max(relativeDistance * halfDistance, 0.0001);
+    if (fisheyeAngle > 0) {
+      factor = Math.tan(relativeDistance * halfAngle) / Math.max(relativeDistance * halfDistance, 0.0001);
+    } else {
+      const beta = Math.atan(relativeDistance * halfDistance);
+      factor = beta / Math.max(relativeDistance * halfAngle, 0.0001);
+    }
   }
 
   const projectedX = clamp((ndcX * factor + 1) * 0.5, 0, 1);
@@ -233,7 +246,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
   const captureInFlightRef = useRef(false);
   const pendingCaptureRef = useRef(false);
   const [rendererReady, setRendererReady] = useState(false);
-  const fisheyeActive = profile.fisheyeAngle > 0.001;
+  const fisheyeActive = Math.abs(profile.fisheyeAngle) > 0.001;
 
   const resizeCanvas = useCallback((): void => {
     const source = sourceRef.current;

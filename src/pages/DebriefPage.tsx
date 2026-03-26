@@ -57,7 +57,7 @@ export function DebriefPage() {
           <li>Visual blur mix: {debriefSnapshot.visualMixLevels.blur}</li>
           <li>Visual ghosting mix: {debriefSnapshot.visualMixLevels.ghosting}</li>
           <li>Visual noise mix: {debriefSnapshot.visualMixLevels.noise}</li>
-          <li>Visual convex mix: {debriefSnapshot.visualMixLevels.convex}</li>
+          <li>Visual lens mix: {debriefSnapshot.visualMixLevels.convex}</li>
           <li>Visual flicker mix: {debriefSnapshot.visualMixLevels.flicker}</li>
           <li>Intrusive-thought audio: {debriefSnapshot.intrusiveThoughtsEnabled ? 'Enabled' : 'Disabled'}</li>
         </ul>

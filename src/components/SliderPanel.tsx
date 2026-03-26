@@ -264,18 +264,23 @@ export function SliderPanel({
 
             <label className="slider-row">
               <div className="slider-row-header">
-                <span>Convex Distortion</span>
+                <span>Lens Distortion</span>
                 <output>{visualMix.convex}</output>
               </div>
               <input
                 type="range"
-                min={0}
+                min={-100}
                 max={100}
                 step={1}
                 value={visualMix.convex}
                 onChange={(event) => onVisualMixChange('convex', Number(event.target.value))}
               />
-              <small>Controls whole-screen bowing and lens-like display warping.</small>
+              <div className="slider-range-hints" aria-hidden="true">
+                <span>Concave</span>
+                <span>0</span>
+                <span>Convex</span>
+              </div>
+              <small>Negative values reverse the fisheye into a concave lens. Positive values bow the display outward.</small>
             </label>
 
             <label className="slider-row">

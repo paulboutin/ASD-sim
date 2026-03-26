@@ -29,15 +29,16 @@ export function getVisualProfile(
   const blurLevel = vision * (visualMix.blur / 100);
   const ghostLevel = vision * (visualMix.ghosting / 100);
   const noiseLevel = vision * (visualMix.noise / 100);
-  const convexLevel = vision * (visualMix.convex / 100);
+  const lensLevel = vision * (Math.abs(visualMix.convex) / 100);
   const flickerLevel = vision * (visualMix.flicker / 100);
+  const lensDirection = Math.sign(visualMix.convex);
 
   const blur = (blurLevel / 100) * 2.2;
   const contrastDrop = 1 - (vision * 0.55 + ghostLevel * 0.45) / 300;
   const flicker = getFlickerPulse(flickerLevel, tick);
   const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1600) - flicker * 0.42;
-  const fisheyeAngle = ((convexLevel / 100) ** 1.04) * Math.PI * 0.78;
-  const stageScale = Math.max(0.82, 1 - convexLevel / 560);
+  const fisheyeAngle = lensDirection === 0 ? 0 : (((lensLevel / 100) ** 1.04) * Math.PI * 0.78 * lensDirection);
+  const stageScale = Math.max(0.82, 1 - lensLevel / 560);
 
   return {
     shellStyle: {},

@@ -215,7 +215,9 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setVisualMix = useCallback((key: keyof VisualMixLevels, value: number) => {
-    dispatch({ type: 'set-visual-mix', key, value: Math.max(0, Math.min(100, Math.round(value))) });
+    const boundedValue =
+      key === 'convex' ? Math.max(-100, Math.min(100, Math.round(value))) : Math.max(0, Math.min(100, Math.round(value)));
+    dispatch({ type: 'set-visual-mix', key, value: boundedValue });
   }, []);
 
   const value = useMemo<SimulationContextValue>(

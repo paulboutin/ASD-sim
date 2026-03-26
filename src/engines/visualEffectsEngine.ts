@@ -4,6 +4,7 @@ import type { VisualMixLevels } from '../types/simulation';
 export interface VisualProfile {
   shellStyle: CSSProperties;
   contentStyle: CSSProperties;
+  convexWarpScale: number;
   noiseOpacity: number;
   ghostOpacity: number;
   shimmerOpacity: number;
@@ -51,6 +52,7 @@ export function getVisualProfile(
       filter: `blur(${blur.toFixed(2)}px) contrast(${contrastDrop.toFixed(2)}) brightness(${brightness.toFixed(2)})`,
       transform: `scale(${(1 + vision / 1700).toFixed(3)}) scaleX(${convexScaleX.toFixed(3)}) scaleY(${convexScaleY.toFixed(3)})`,
     },
+    convexWarpScale: Math.round(convexLevel * 0.75),
     noiseOpacity: Math.min(0.32, noiseLevel / 330),
     ghostOpacity: Math.min(0.45, ghostLevel / 250),
     shimmerOpacity: Math.min(0.35, synesthesia / 250),

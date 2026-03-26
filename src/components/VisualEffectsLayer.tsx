@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { getVisualProfile } from '../engines/visualEffectsEngine';
 import type { VisualMixLevels } from '../types/simulation';
 
@@ -11,11 +11,80 @@ interface VisualEffectsLayerProps {
 }
 
 export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, children }: VisualEffectsLayerProps) {
+  const filterId = useId().replace(/:/g, '');
   const profile = getVisualProfile(vision, synesthesia, tick, visualMix);
+  const redMapHref = `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stop-color="rgb(0,0,0)"/>
+          <stop offset="50%" stop-color="rgb(128,0,0)"/>
+          <stop offset="100%" stop-color="rgb(255,0,0)"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" fill="url(#g)"/>
+    </svg>`,
+  )}`;
+  const greenMapHref = `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="g" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="rgb(0,0,0)"/>
+          <stop offset="50%" stop-color="rgb(0,128,0)"/>
+          <stop offset="100%" stop-color="rgb(0,255,0)"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" fill="url(#g)"/>
+    </svg>`,
+  )}`;
+  const contentStyle = {
+    ...profile.contentStyle,
+    filter:
+      profile.convexWarpScale > 0
+        ? `url(#${filterId}) ${profile.contentStyle.filter ?? ''}`.trim()
+        : profile.contentStyle.filter,
+  };
 
   return (
     <div className="visual-shell" style={profile.shellStyle}>
-      <div className="visual-content" style={profile.contentStyle}>
+      <svg className="visual-filter-defs" aria-hidden="true" focusable="false">
+        <defs>
+          <filter
+            id={filterId}
+            x="-18%"
+            y="-18%"
+            width="136%"
+            height="136%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feImage href={redMapHref} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="redMap" />
+            <feImage
+              href={greenMapHref}
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              preserveAspectRatio="none"
+              result="greenMap"
+            />
+            <feBlend in="redMap" in2="greenMap" mode="screen" result="baseMap" />
+            <feComponentTransfer in="baseMap" result="warpMap">
+              <feFuncR type="table" tableValues="0 0.04 0.11 0.21 0.36 0.5 0.64 0.79 0.89 0.96 1" />
+              <feFuncG type="table" tableValues="0 0.04 0.11 0.21 0.36 0.5 0.64 0.79 0.89 0.96 1" />
+              <feFuncB type="identity" />
+              <feFuncA type="identity" />
+            </feComponentTransfer>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="warpMap"
+              scale={profile.convexWarpScale}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+      <div className="visual-content" style={contentStyle}>
         {children}
       </div>
       <div className="visual-noise" style={{ opacity: profile.noiseOpacity }} />

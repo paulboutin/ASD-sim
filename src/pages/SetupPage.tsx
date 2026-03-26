@@ -9,12 +9,14 @@ import { buildPresetQuery, loadPresetFromLocation } from '../utils/presets';
 export function SetupPage() {
   const navigate = useNavigate();
   const {
-    state: { channels, audioMix, intrusiveThoughtsEnabled, selectedTest },
+    state: { channels, audioMix, visualMix, intrusiveThoughtsEnabled, selectedTest },
     applyLevels,
     resetChannels,
     resetAudioMix,
+    resetVisualMix,
     setChannel,
     setAudioMix,
+    setVisualMix,
     setIntrusiveThoughtsEnabled,
     setTest,
   } = useSimulation();
@@ -50,12 +52,15 @@ export function SetupPage() {
       <SliderPanel
         levels={channels}
         audioMix={audioMix}
+        visualMix={visualMix}
         intrusiveThoughtsEnabled={intrusiveThoughtsEnabled}
         onChange={setChannel}
         onAudioMixChange={setAudioMix}
+        onVisualMixChange={setVisualMix}
         onSetIntrusiveThoughtsEnabled={setIntrusiveThoughtsEnabled}
         onReset={resetChannels}
         onResetAudioMix={resetAudioMix}
+        onResetVisualMix={resetVisualMix}
       />
 
       <section className="panel">

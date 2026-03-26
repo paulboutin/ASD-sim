@@ -53,6 +53,7 @@ export function SimulationPage() {
     state: {
       channels,
       audioMix,
+      visualMix,
       muted,
       paused,
       intrusiveThoughtsEnabled,
@@ -62,11 +63,13 @@ export function SimulationPage() {
     },
     setChannel,
     setAudioMix,
+    setVisualMix,
     setIntrusiveThoughtsEnabled,
     setMuted,
     setPaused,
     resetChannels,
     resetAudioMix,
+    resetVisualMix,
     restartSession,
     saveDebrief,
   } = useSimulation();
@@ -137,6 +140,7 @@ export function SimulationPage() {
       testTitle: test.label,
       channelLevels: channels,
       audioMixLevels: audioMix,
+      visualMixLevels: visualMix,
       intrusiveThoughtsEnabled,
       attempts: stats.attempts,
       responses: stats.responses,
@@ -146,7 +150,7 @@ export function SimulationPage() {
       notes: stats.notes,
     });
     navigate('/debrief');
-  }, [audioMix, channels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label]);
+  }, [audioMix, channels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label, visualMix]);
 
   const handleRestart = (): void => {
     setStats(INITIAL_STATS);
@@ -237,12 +241,15 @@ export function SimulationPage() {
             <SliderPanel
               levels={channels}
               audioMix={audioMix}
+              visualMix={visualMix}
               intrusiveThoughtsEnabled={intrusiveThoughtsEnabled}
               onChange={setChannel}
               onAudioMixChange={setAudioMix}
+              onVisualMixChange={setVisualMix}
               onSetIntrusiveThoughtsEnabled={setIntrusiveThoughtsEnabled}
               onReset={resetChannels}
               onResetAudioMix={resetAudioMix}
+              onResetVisualMix={resetVisualMix}
               embedded
             />
           </section>
@@ -260,7 +267,12 @@ export function SimulationPage() {
         <section className={`simulation-layout ${isFullscreen ? 'simulation-layout-fullscreen' : ''}`}>
           {!isFullscreen ? <ChannelReadout channels={channels} /> : null}
 
-          <VisualEffectsLayer vision={channels.vision} synesthesia={channels.synesthesia} tick={tick}>
+          <VisualEffectsLayer
+            vision={channels.vision}
+            synesthesia={channels.synesthesia}
+            visualMix={visualMix}
+            tick={tick}
+          >
             <TestComponent
               key={sessionKey}
               channels={channels}

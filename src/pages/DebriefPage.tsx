@@ -54,6 +54,11 @@ export function DebriefPage() {
           <li>Prompt voice volume: {debriefSnapshot.audioMixLevels.promptVoice}</li>
           <li>Distraction audio volume: {debriefSnapshot.audioMixLevels.distortion}</li>
           <li>Intrusive-thought volume: {debriefSnapshot.audioMixLevels.intrusiveThoughts}</li>
+          <li>Visual blur mix: {debriefSnapshot.visualMixLevels.blur}</li>
+          <li>Visual ghosting mix: {debriefSnapshot.visualMixLevels.ghosting}</li>
+          <li>Visual noise mix: {debriefSnapshot.visualMixLevels.noise}</li>
+          <li>Visual convex mix: {debriefSnapshot.visualMixLevels.convex}</li>
+          <li>Visual flicker mix: {debriefSnapshot.visualMixLevels.flicker}</li>
           <li>Intrusive-thought audio: {debriefSnapshot.intrusiveThoughtsEnabled ? 'Enabled' : 'Disabled'}</li>
         </ul>
       </section>

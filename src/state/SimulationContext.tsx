@@ -8,7 +8,14 @@ import {
   type ReactNode,
 } from 'react';
 import { DEFAULT_LEVELS } from '../config/channels';
-import type { AudioMixLevels, ChannelKey, ChannelLevels, DebriefSnapshot, TestId } from '../types/simulation';
+import type {
+  AudioMixLevels,
+  ChannelKey,
+  ChannelLevels,
+  DebriefSnapshot,
+  TestId,
+  VisualMixLevels,
+} from '../types/simulation';
 
 const DEFAULT_AUDIO_MIX: AudioMixLevels = {
   promptVoice: 100,
@@ -16,14 +23,24 @@ const DEFAULT_AUDIO_MIX: AudioMixLevels = {
   intrusiveThoughts: 100,
 };
 
+const DEFAULT_VISUAL_MIX: VisualMixLevels = {
+  blur: 100,
+  ghosting: 100,
+  noise: 100,
+  convex: 100,
+  flicker: 100,
+};
+
 interface SimulationState {
   channels: ChannelLevels;
   audioMix: AudioMixLevels;
+  visualMix: VisualMixLevels;
   selectedTest: TestId;
   warningsAccepted: boolean;
   muted: boolean;
   paused: boolean;
   intrusiveThoughtsEnabled: boolean;
+  intrusiveThoughtsPresetVolume: number;
   restartNonce: number;
   debriefSnapshot: DebriefSnapshot | null;
 }
@@ -31,9 +48,11 @@ interface SimulationState {
 type Action =
   | { type: 'set-channel'; key: ChannelKey; value: number }
   | { type: 'set-audio-mix'; key: keyof AudioMixLevels; value: number }
+  | { type: 'set-visual-mix'; key: keyof VisualMixLevels; value: number }
   | { type: 'set-test'; testId: TestId }
   | { type: 'reset-channels' }
   | { type: 'reset-audio-mix' }
+  | { type: 'reset-visual-mix' }
   | { type: 'apply-levels'; levels: ChannelLevels }
   | { type: 'accept-warnings' }
   | { type: 'set-muted'; muted: boolean }
@@ -46,11 +65,13 @@ type Action =
 const initialState: SimulationState = {
   channels: DEFAULT_LEVELS,
   audioMix: DEFAULT_AUDIO_MIX,
+  visualMix: DEFAULT_VISUAL_MIX,
   selectedTest: 'symbol-selection',
   warningsAccepted: false,
   muted: false,
   paused: false,
   intrusiveThoughtsEnabled: false,
+  intrusiveThoughtsPresetVolume: DEFAULT_AUDIO_MIX.intrusiveThoughts,
   restartNonce: 0,
   debriefSnapshot: null,
 };
@@ -72,6 +93,16 @@ function simulationReducer(state: SimulationState, action: Action): SimulationSt
           ...state.audioMix,
           [action.key]: action.value,
         },
+        intrusiveThoughtsPresetVolume:
+          action.key === 'intrusiveThoughts' && action.value > 0 ? action.value : state.intrusiveThoughtsPresetVolume,
+      };
+    case 'set-visual-mix':
+      return {
+        ...state,
+        visualMix: {
+          ...state.visualMix,
+          [action.key]: action.value,
+        },
       };
     case 'set-test':
       return {
@@ -86,7 +117,16 @@ function simulationReducer(state: SimulationState, action: Action): SimulationSt
     case 'reset-audio-mix':
       return {
         ...state,
-        audioMix: DEFAULT_AUDIO_MIX,
+        audioMix: {
+          ...DEFAULT_AUDIO_MIX,
+          intrusiveThoughts: state.intrusiveThoughtsEnabled ? DEFAULT_AUDIO_MIX.intrusiveThoughts : 0,
+        },
+        intrusiveThoughtsPresetVolume: DEFAULT_AUDIO_MIX.intrusiveThoughts,
+      };
+    case 'reset-visual-mix':
+      return {
+        ...state,
+        visualMix: DEFAULT_VISUAL_MIX,
       };
     case 'apply-levels':
       return {
@@ -112,6 +152,14 @@ function simulationReducer(state: SimulationState, action: Action): SimulationSt
       return {
         ...state,
         intrusiveThoughtsEnabled: action.enabled,
+        audioMix: {
+          ...state.audioMix,
+          intrusiveThoughts: action.enabled ? state.intrusiveThoughtsPresetVolume : 0,
+        },
+        intrusiveThoughtsPresetVolume:
+          !action.enabled && state.audioMix.intrusiveThoughts > 0
+            ? state.audioMix.intrusiveThoughts
+            : state.intrusiveThoughtsPresetVolume,
       };
     case 'restart-session':
       return {
@@ -138,9 +186,11 @@ interface SimulationContextValue {
   state: SimulationState;
   setChannel: (key: ChannelKey, value: number) => void;
   setAudioMix: (key: keyof AudioMixLevels, value: number) => void;
+  setVisualMix: (key: keyof VisualMixLevels, value: number) => void;
   setTest: (testId: TestId) => void;
   resetChannels: () => void;
   resetAudioMix: () => void;
+  resetVisualMix: () => void;
   applyLevels: (levels: ChannelLevels) => void;
   acceptWarnings: () => void;
   setMuted: (muted: boolean) => void;
@@ -164,14 +214,20 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'set-audio-mix', key, value: Math.max(0, Math.min(100, Math.round(value))) });
   }, []);
 
+  const setVisualMix = useCallback((key: keyof VisualMixLevels, value: number) => {
+    dispatch({ type: 'set-visual-mix', key, value: Math.max(0, Math.min(100, Math.round(value))) });
+  }, []);
+
   const value = useMemo<SimulationContextValue>(
     () => ({
       state,
       setChannel,
       setAudioMix,
+      setVisualMix,
       setTest: (testId) => dispatch({ type: 'set-test', testId }),
       resetChannels: () => dispatch({ type: 'reset-channels' }),
       resetAudioMix: () => dispatch({ type: 'reset-audio-mix' }),
+      resetVisualMix: () => dispatch({ type: 'reset-visual-mix' }),
       applyLevels: (levels) => dispatch({ type: 'apply-levels', levels }),
       acceptWarnings: () => dispatch({ type: 'accept-warnings' }),
       setMuted: (muted) => dispatch({ type: 'set-muted', muted }),
@@ -181,7 +237,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       saveDebrief: (payload) => dispatch({ type: 'save-debrief', payload }),
       clearDebrief: () => dispatch({ type: 'clear-debrief' }),
     }),
-    [setAudioMix, setChannel, state],
+    [setAudioMix, setChannel, setVisualMix, state],
   );
 
   return <SimulationContext.Provider value={value}>{children}</SimulationContext.Provider>;

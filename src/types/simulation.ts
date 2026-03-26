@@ -8,6 +8,14 @@ export interface AudioMixLevels {
   intrusiveThoughts: number;
 }
 
+export interface VisualMixLevels {
+  blur: number;
+  ghosting: number;
+  noise: number;
+  convex: number;
+  flicker: number;
+}
+
 export type TestId = 'symbol-selection' | 'recognition' | 'timed-focus' | 'color-selection';
 
 export interface DebriefSnapshot {
@@ -15,6 +23,7 @@ export interface DebriefSnapshot {
   testTitle: string;
   channelLevels: ChannelLevels;
   audioMixLevels: AudioMixLevels;
+  visualMixLevels: VisualMixLevels;
   intrusiveThoughtsEnabled: boolean;
   notes: string[];
   attempts: number;

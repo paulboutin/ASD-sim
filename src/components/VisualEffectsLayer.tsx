@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useMemo, type ReactNode } from 'react';
 import { getVisualProfile } from '../engines/visualEffectsEngine';
 import type { VisualMixLevels } from '../types/simulation';
 
@@ -10,36 +10,46 @@ interface VisualEffectsLayerProps {
   children: ReactNode;
 }
 
+function createBarrelMapDataUrl(size = 256): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const imageData = context.createImageData(size, size);
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const nx = (x / (size - 1)) * 2 - 1;
+      const ny = (y / (size - 1)) * 2 - 1;
+      const radius = Math.min(1, Math.sqrt(nx * nx + ny * ny));
+      const curve = radius * radius;
+
+      const rx = Math.max(0, Math.min(255, Math.round(128 + nx * curve * 110)));
+      const gy = Math.max(0, Math.min(255, Math.round(128 + ny * curve * 110)));
+      const offset = (y * size + x) * 4;
+
+      imageData.data[offset] = rx;
+      imageData.data[offset + 1] = gy;
+      imageData.data[offset + 2] = 128;
+      imageData.data[offset + 3] = 255;
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
 export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, children }: VisualEffectsLayerProps) {
   const filterId = useId().replace(/:/g, '');
   const profile = getVisualProfile(vision, synesthesia, tick, visualMix);
-  const redMapHref = `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="g" x1="0%" y1="50%" x2="100%" y2="50%">
-          <stop offset="0%" stop-color="rgb(0,0,0)"/>
-          <stop offset="50%" stop-color="rgb(128,0,0)"/>
-          <stop offset="100%" stop-color="rgb(255,0,0)"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" fill="url(#g)"/>
-    </svg>`,
-  )}`;
-  const greenMapHref = `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="g" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" stop-color="rgb(0,0,0)"/>
-          <stop offset="50%" stop-color="rgb(0,128,0)"/>
-          <stop offset="100%" stop-color="rgb(0,255,0)"/>
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" fill="url(#g)"/>
-    </svg>`,
-  )}`;
+  const barrelMapHref = useMemo(() => createBarrelMapDataUrl(), []);
   const stageStyle = {
     ...profile.stageStyle,
-    filter: profile.convexWarpScale > 0 ? `url(#${filterId})` : undefined,
+    filter: profile.convexWarpScale > 0 && barrelMapHref ? `url(#${filterId})` : undefined,
   };
   const contentStyle = {
     ...profile.contentStyle,
@@ -57,23 +67,15 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
             height="136%"
             colorInterpolationFilters="sRGB"
           >
-            <feImage href={redMapHref} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="redMap" />
             <feImage
-              href={greenMapHref}
+              href={barrelMapHref ?? undefined}
               x="0"
               y="0"
               width="100%"
               height="100%"
               preserveAspectRatio="none"
-              result="greenMap"
+              result="warpMap"
             />
-            <feBlend in="redMap" in2="greenMap" mode="screen" result="baseMap" />
-            <feComponentTransfer in="baseMap" result="warpMap">
-              <feFuncR type="table" tableValues="0 0.01 0.04 0.12 0.28 0.5 0.72 0.88 0.96 0.99 1" />
-              <feFuncG type="table" tableValues="0 0.01 0.04 0.12 0.28 0.5 0.72 0.88 0.96 0.99 1" />
-              <feFuncB type="identity" />
-              <feFuncA type="identity" />
-            </feComponentTransfer>
             <feDisplacementMap
               in="SourceGraphic"
               in2="warpMap"

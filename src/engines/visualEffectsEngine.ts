@@ -40,12 +40,14 @@ export function getVisualProfile(
 
   return {
     shellStyle: {},
-    stageStyle: {},
+    stageStyle: {
+      transform: `scale(${(1 - convexLevel / 1400).toFixed(3)})`,
+    },
     contentStyle: {
       filter: `blur(${blur.toFixed(2)}px) contrast(${contrastDrop.toFixed(2)}) brightness(${brightness.toFixed(2)})`,
       transform: `scale(${(1 + vision / 1700).toFixed(3)})`,
     },
-    convexWarpScale: Math.round(((convexLevel / 100) ** 1.15) * 260),
+    convexWarpScale: Math.round(((convexLevel / 100) ** 1.18) * 340),
     noiseOpacity: Math.min(0.32, noiseLevel / 330),
     ghostOpacity: Math.min(0.45, ghostLevel / 250),
     shimmerOpacity: Math.min(0.35, synesthesia / 250),

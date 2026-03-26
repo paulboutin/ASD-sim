@@ -5,11 +5,10 @@ export interface VisualProfile {
   shellStyle: CSSProperties;
   stageStyle: CSSProperties;
   contentStyle: CSSProperties;
-  convexWarpScale: number;
+  fisheyeAngle: number;
   noiseOpacity: number;
   ghostOpacity: number;
   shimmerOpacity: number;
-  convexOpacity: number;
   fluorescentOpacity: number;
 }
 
@@ -37,21 +36,22 @@ export function getVisualProfile(
   const contrastDrop = 1 - (vision * 0.55 + ghostLevel * 0.45) / 300;
   const flicker = getFlickerPulse(flickerLevel, tick);
   const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1600) - flicker * 0.42;
+  const fisheyeAngle = ((convexLevel / 100) ** 1.04) * Math.PI * 0.78;
+  const stageScale = Math.max(0.82, 1 - convexLevel / 560);
 
   return {
     shellStyle: {},
     stageStyle: {
-      transform: `scale(${(1 - convexLevel / 1400).toFixed(3)})`,
+      transform: `scale(${stageScale.toFixed(3)})`,
     },
     contentStyle: {
       filter: `blur(${blur.toFixed(2)}px) contrast(${contrastDrop.toFixed(2)}) brightness(${brightness.toFixed(2)})`,
       transform: `scale(${(1 + vision / 1700).toFixed(3)})`,
     },
-    convexWarpScale: Math.round(((convexLevel / 100) ** 1.18) * 340),
+    fisheyeAngle,
     noiseOpacity: Math.min(0.32, noiseLevel / 330),
     ghostOpacity: Math.min(0.45, ghostLevel / 250),
     shimmerOpacity: Math.min(0.35, synesthesia / 250),
-    convexOpacity: 0,
     fluorescentOpacity: Math.min(0.28, flicker),
   };
 }

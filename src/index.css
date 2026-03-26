@@ -569,12 +569,18 @@ input[type='text'][readonly] {
   border-radius: 1rem;
 }
 
-.visual-filter-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
+.visual-stage {
+  position: relative;
+  transform-origin: center center;
+}
+
+.visual-source {
+  position: relative;
+  z-index: 0;
+}
+
+.visual-source-hidden {
+  opacity: 0;
 }
 
 .visual-content {
@@ -583,15 +589,24 @@ input[type='text'][readonly] {
   transform-origin: center center;
 }
 
-.visual-stage {
-  position: relative;
-  transform-origin: center center;
+.visual-webgl-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: auto;
+}
+
+.visual-webgl-surface-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .visual-noise,
 .visual-ghost,
 .visual-shimmer,
-.visual-convex,
 .visual-fluorescent {
   position: absolute;
   inset: 0;
@@ -614,10 +629,6 @@ input[type='text'][readonly] {
 .visual-shimmer {
   background: linear-gradient(115deg, rgba(253, 210, 135, 0.28), rgba(128, 189, 233, 0.16));
   animation: shimmer 3.4s ease-in-out infinite;
-}
-
-.visual-convex {
-  display: none;
 }
 
 .visual-fluorescent {

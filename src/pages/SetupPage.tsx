@@ -28,13 +28,25 @@ export function SetupPage() {
   useEffect(() => {
     if (!loadedPreset) return;
     applyLevels(loadedPreset.levels);
-  }, [applyLevels, loadedPreset]);
+    setAudioMix('promptVoice', loadedPreset.audioMix.promptVoice);
+    setAudioMix('distortion', loadedPreset.audioMix.distortion);
+    setAudioMix('intrusiveThoughts', loadedPreset.audioMix.intrusiveThoughts);
+    setVisualMix('blur', loadedPreset.visualMix.blur);
+    setVisualMix('ghosting', loadedPreset.visualMix.ghosting);
+    setVisualMix('noise', loadedPreset.visualMix.noise);
+    setVisualMix('convex', loadedPreset.visualMix.convex);
+    setVisualMix('flicker', loadedPreset.visualMix.flicker);
+    setIntrusiveThoughtsEnabled(loadedPreset.intrusiveThoughtsEnabled);
+    if (loadedPreset.selectedTest) {
+      setTest(loadedPreset.selectedTest);
+    }
+  }, [applyLevels, loadedPreset, setAudioMix, setIntrusiveThoughtsEnabled, setTest, setVisualMix]);
 
   const shareLink = useMemo(() => {
-    const query = buildPresetQuery(channels);
+    const query = buildPresetQuery(channels, audioMix, visualMix, intrusiveThoughtsEnabled, selectedTest);
     const base = `${window.location.origin}${window.location.pathname}`;
     return `${base}#/setup?${query}`;
-  }, [channels]);
+  }, [audioMix, channels, intrusiveThoughtsEnabled, selectedTest, visualMix]);
 
   return (
     <main className="page">
@@ -67,7 +79,7 @@ export function SetupPage() {
         <h2>Preset Link (Query-string Ready)</h2>
         <p>
           Share this URL to load current slider levels. Supports forms like
-          <code>?preset=lucas</code> and explicit channel values.
+          <code>?preset=lucas</code> and explicit channel, mix, and test values.
         </p>
         <input type="text" value={shareLink} readOnly />
       </section>

@@ -20,6 +20,17 @@ function getFlickerPulse(flickerLevel: number, tick: number): number {
   return Math.max(0, wave) * (flickerLevel / 165) + surge;
 }
 
+export function getVisualInterferenceLevel(visualMix: VisualMixLevels): number {
+  const total =
+    visualMix.blur +
+    visualMix.ghosting +
+    visualMix.noise +
+    visualMix.flicker +
+    Math.abs(visualMix.convex);
+
+  return Math.round(total / 5);
+}
+
 export function getVisualProfile(
   vision: number,
   synesthesia: number,
@@ -39,6 +50,7 @@ export function getVisualProfile(
   const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1600) - flicker * 0.42;
   const fisheyeAngle = lensDirection === 0 ? 0 : (((lensLevel / 100) ** 1.04) * Math.PI * 0.78 * lensDirection);
   const stageScale = Math.max(0.82, 1 - lensLevel / 560);
+  const overlayMixLevel = Math.max(blurLevel, ghostLevel, noiseLevel, flickerLevel);
 
   return {
     shellStyle: {},
@@ -52,7 +64,7 @@ export function getVisualProfile(
     fisheyeAngle,
     noiseOpacity: Math.min(0.32, noiseLevel / 330),
     ghostOpacity: Math.min(0.45, ghostLevel / 250),
-    shimmerOpacity: Math.min(0.35, synesthesia / 250),
+    shimmerOpacity: overlayMixLevel > 0 ? Math.min(0.35, synesthesia / 250) : 0,
     fluorescentOpacity: Math.min(0.28, flicker),
   };
 }

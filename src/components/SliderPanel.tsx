@@ -190,28 +190,12 @@ export function SliderPanel({
           <div className="settings-group-header">
             <div>
               <h3>Visual Settings</h3>
-              <p>Set the overall visual distortion level, then tune the mix of each visible distortion type.</p>
+              <p>Tune each visual distortion directly without a separate master visual slider.</p>
             </div>
             <button type="button" className="ghost-button" onClick={onResetVisualMix}>
               Reset Visual Mix
             </button>
           </div>
-
-          <label className="slider-row">
-            <div className="slider-row-header">
-              <span>{CHANNEL_BY_KEY.vision.label}</span>
-              <output>{levels.vision}</output>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={CHANNEL_BY_KEY.vision.max}
-              step={1}
-              value={levels.vision}
-              onChange={(event) => onChange('vision', Number(event.target.value))}
-            />
-            <small>{CHANNEL_BY_KEY.vision.description}</small>
-          </label>
 
           <div className="visual-mix-grid">
             <label className="slider-row">

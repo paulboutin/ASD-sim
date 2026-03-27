@@ -5,6 +5,7 @@ import { SimulationControls } from '../components/SimulationControls';
 import { SliderPanel } from '../components/SliderPanel';
 import { VisualEffectsLayer } from '../components/VisualEffectsLayer';
 import { useAudioEngine } from '../engines/audioEngine';
+import { getVisualInterferenceLevel } from '../engines/visualEffectsEngine';
 import { getTestById } from '../tests';
 import type { SimulationEvent } from '../tests/TestTypes';
 import { useSimulation } from '../state/SimulationContext';
@@ -81,6 +82,14 @@ export function SimulationPage() {
   const test = useMemo(() => getTestById(selectedTest), [selectedTest]);
   const sessionKey = `${selectedTest}-${restartNonce}`;
   const TestComponent = test.component;
+  const effectiveVision = useMemo(() => getVisualInterferenceLevel(visualMix), [visualMix]);
+  const effectiveChannels = useMemo(
+    () => ({
+      ...channels,
+      vision: effectiveVision,
+    }),
+    [channels, effectiveVision],
+  );
 
   useEffect(() => {
     if (warningsAccepted) return;
@@ -138,7 +147,7 @@ export function SimulationPage() {
     saveDebrief({
       testId: selectedTest,
       testTitle: test.label,
-      channelLevels: channels,
+      channelLevels: effectiveChannels,
       audioMixLevels: audioMix,
       visualMixLevels: visualMix,
       intrusiveThoughtsEnabled,
@@ -150,7 +159,7 @@ export function SimulationPage() {
       notes: stats.notes,
     });
     navigate('/debrief');
-  }, [audioMix, channels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label, visualMix]);
+  }, [audioMix, effectiveChannels, intrusiveThoughtsEnabled, navigate, saveDebrief, selectedTest, stats, test.label, visualMix]);
 
   const handleRestart = (): void => {
     setStats(INITIAL_STATS);
@@ -265,17 +274,17 @@ export function SimulationPage() {
         ) : null}
 
         <section className={`simulation-layout ${isFullscreen ? 'simulation-layout-fullscreen' : ''}`}>
-          {!isFullscreen ? <ChannelReadout channels={channels} /> : null}
+          {!isFullscreen ? <ChannelReadout channels={effectiveChannels} /> : null}
 
           <VisualEffectsLayer
-            vision={channels.vision}
+            vision={effectiveVision}
             synesthesia={channels.synesthesia}
             visualMix={visualMix}
             tick={tick}
           >
             <TestComponent
               key={sessionKey}
-              channels={channels}
+              channels={effectiveChannels}
               paused={paused}
               audioEnabled={!muted}
               promptVoiceVolume={audioMix.promptVoice}
@@ -301,7 +310,7 @@ export function SimulationPage() {
                 <li>Apraxia: {channels.apraxia}</li>
                 <li>Stim: {channels.stim}</li>
                 <li>Hearing: {channels.hearing}</li>
-                <li>Vision: {channels.vision}</li>
+                <li>Vision: {effectiveVision}</li>
                 <li>Synesthesia: {channels.synesthesia}</li>
               </ul>
             </div>

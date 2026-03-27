@@ -64,7 +64,10 @@ type Action =
 
 const initialState: SimulationState = {
   channels: DEFAULT_LEVELS,
-  audioMix: DEFAULT_AUDIO_MIX,
+  audioMix: {
+    ...DEFAULT_AUDIO_MIX,
+    intrusiveThoughts: 0,
+  },
   visualMix: DEFAULT_VISUAL_MIX,
   selectedTest: 'symbol-selection',
   warningsAccepted: false,

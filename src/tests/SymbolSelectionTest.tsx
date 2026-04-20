@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SymbolIcon } from '../components/SymbolIcon';
+import { feedbackAudio, feedbackAudioDelayMs, getSymbolPromptAudio } from '../config/promptAudio';
 import { SYMBOL_ITEMS } from '../config/symbols';
-import { usePromptVoice } from '../hooks/usePromptVoice';
+import { usePromptAudio } from '../hooks/usePromptAudio';
 import {
   getActivationDelay,
   getTargetDrift,
@@ -35,9 +36,8 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
   const [gridItems, setGridItems] = useState(() => shuffleArray(SYMBOL_ITEMS));
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
-  const advanceTimeoutRef = useRef<number | null>(null);
   const targetItem = SYMBOL_ITEMS.find((item) => item.label === target) ?? SYMBOL_ITEMS[0];
-  const { speakNo } = usePromptVoice(`Touch ${target}.`, {
+  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getSymbolPromptAudio(target), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -64,9 +64,6 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
       if (responseTimeoutRef.current) {
         window.clearTimeout(responseTimeoutRef.current);
       }
-      if (advanceTimeoutRef.current) {
-        window.clearTimeout(advanceTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -75,8 +72,9 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
   const handleSymbolSelect = (label: string): void => {
     if (paused) return;
 
+    const currentTarget = target;
     onEvent({ type: 'attempt' });
-
+    stopClip();
     setStatus('Processing selection...');
 
     if (responseTimeoutRef.current) {
@@ -87,30 +85,34 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
       const labels = gridItems.map((item) => item.label);
       const selected = resolveRegistration(label, labels, channels.apraxia, channels.vision);
 
-      if (selected === target) {
-        setStatus(`Input registered for "${target}". A new target is loaded.`);
-        setTarget(randomSymbol(target));
+      if (selected === currentTarget) {
+        const nextTarget = randomSymbol(currentTarget);
+        delayNextPrompt(feedbackAudioDelayMs.correct);
+        playOneShotClip(feedbackAudio.correct, {
+          volume: 0.92,
+        });
+        setStatus(`Input registered for "${currentTarget}". Loading the next prompt.`);
+        setTarget(nextTarget);
         onEvent({ type: 'response', note: 'Target symbol selected.' });
       } else {
-        const directMiss = label !== target;
-        setStatus(`No. ${selected} was registered while ${target} was requested.`);
+        const directMiss = label !== currentTarget;
+        const nextTarget = randomSymbol(currentTarget);
+        delayNextPrompt(feedbackAudioDelayMs.incorrect);
+        setStatus(`No. ${selected} was registered while ${currentTarget} was requested.`);
         onEvent({
           type: 'incorrect',
           note: directMiss
-            ? `Incorrect symbol selected while ${target} was requested.`
-            : `Symbol response resolved incorrectly while targeting ${target}.`,
+            ? `Incorrect symbol selected while ${currentTarget} was requested.`
+            : `Symbol response resolved incorrectly while targeting ${currentTarget}.`,
         });
         if (!directMiss) {
           onEvent({ type: 'disruption', note: 'Symbol mismatch under movement/vision interference.' });
         }
 
-        speakNo();
-        if (advanceTimeoutRef.current) {
-          window.clearTimeout(advanceTimeoutRef.current);
-        }
-        advanceTimeoutRef.current = window.setTimeout(() => {
-          setTarget(randomSymbol(target));
-        }, 720);
+        playOneShotClip(feedbackAudio.incorrect, {
+          volume: 0.92,
+        });
+        setTarget(nextTarget);
       }
     }, getActivationDelay(channels.apraxia));
   };

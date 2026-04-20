@@ -1,30 +1,40 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getFocusPromptAudio } from '../config/promptAudio';
 import { getInterruptionOpacity, getTargetDrift } from '../engines/interactionEngine';
+import { usePromptAudio } from '../hooks/usePromptAudio';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
-const PROMPTS = [
-  'Tap Ready when you can re-center attention.',
-  'Select Need Break if the environment feels too intense.',
-  'Tap Continue if you can stay with this prompt.',
-  'Choose Pause Request if you want less input right now.',
+interface FocusPrompt {
+  id: string;
+  label: string;
+}
+
+const PROMPTS: FocusPrompt[] = [
+  { id: 'ready-attention', label: 'Touch Ready Attention.' },
+  { id: 'need-break', label: 'Choose Need Break.' },
+  { id: 'continue', label: 'Press Continue.' },
+  { id: 'pause', label: 'Choose Pause.' },
 ];
 
-const RESPONSES = ['Ready', 'Need Break', 'Continue', 'Pause Request'];
+const RESPONSES = ['Ready Attention', 'Need Break', 'Continue', 'Pause'];
 
-function pickPrompt(previous?: string): string {
-  const items = previous ? PROMPTS.filter((item) => item !== previous) : PROMPTS;
+function pickPrompt(previousId?: string): FocusPrompt {
+  const items = previousId ? PROMPTS.filter((item) => item.id !== previousId) : PROMPTS;
   return items[Math.floor(Math.random() * items.length)];
 }
 
 export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
-  void audioEnabled;
-  void promptVoiceVolume;
-  const [currentPrompt, setCurrentPrompt] = useState<string>(() => pickPrompt());
+  const [currentPrompt, setCurrentPrompt] = useState<FocusPrompt>(() => pickPrompt());
   const [responseOrder, setResponseOrder] = useState<string[]>(() => shuffleArray(RESPONSES));
   const [awaitingResponse, setAwaitingResponse] = useState(true);
   const [status, setStatus] = useState('Respond to each prompt while distractions are active.');
   const [tick, setTick] = useState(0);
+  usePromptAudio(getFocusPromptAudio(currentPrompt.id), {
+    enabled: audioEnabled,
+    paused,
+    volume: promptVoiceVolume,
+  });
 
   useEffect(() => {
     if (paused) return;
@@ -37,7 +47,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
         onEvent({ type: 'disruption', note: 'Prompt timed out under interference.' });
       }
 
-      const next = pickPrompt(currentPrompt);
+      const next = pickPrompt(currentPrompt.id);
       setCurrentPrompt(next);
       setAwaitingResponse(true);
       onEvent({ type: 'prompt', note: 'New timed focus prompt shown.' });
@@ -56,7 +66,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
       window.clearInterval(tickTimer);
       window.clearInterval(swapTimer);
     };
-  }, [awaitingResponse, channels.apraxia, channels.hearing, channels.stim, currentPrompt, onEvent, paused]);
+  }, [awaitingResponse, channels.apraxia, channels.hearing, channels.stim, currentPrompt.id, onEvent, paused]);
 
   const interruptionOpacity = useMemo(
     () => getInterruptionOpacity(channels.stim + channels.synesthesia * 0.25, tick),
@@ -89,7 +99,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
         </p>
       </header>
 
-      <div className="target-callout">{currentPrompt}</div>
+      <div className="target-callout">{currentPrompt.label}</div>
 
       <div className="focus-response-grid">
         {responseOrder.map((response, index) => {

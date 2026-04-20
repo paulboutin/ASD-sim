@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { usePromptVoice } from '../hooks/usePromptVoice';
+import { feedbackAudio, feedbackAudioDelayMs, getRecognitionPromptAudio } from '../config/promptAudio';
+import { usePromptAudio } from '../hooks/usePromptAudio';
 import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -74,9 +75,8 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching shape-color card.');
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
-  const advanceTimeoutRef = useRef<number | null>(null);
   const answerOption = prompt.options.find((option) => option.id === prompt.answerId) ?? prompt.options[0];
-  const { speakNo } = usePromptVoice(`Touch ${answerOption.colorName} ${answerOption.shape}.`, {
+  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getRecognitionPromptAudio(prompt.id), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -105,16 +105,16 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
       if (responseTimeoutRef.current) {
         window.clearTimeout(responseTimeoutRef.current);
       }
-      if (advanceTimeoutRef.current) {
-        window.clearTimeout(advanceTimeoutRef.current);
-      }
     };
   }, []);
 
   const handleChoice = (index: number): void => {
     if (paused) return;
 
+    const currentPrompt = prompt;
+    const currentAnswer = answerOption;
     onEvent({ type: 'attempt' });
+    stopClip();
     setStatus('Processing response...');
 
     if (responseTimeoutRef.current) {
@@ -132,14 +132,20 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
       const resolved = displayOptions[resolvedIndex];
       const intended = displayOptions[index];
 
-      if (resolved.id === prompt.answerId) {
-        setStatus(`Response registered for "${answerOption.colorName} ${answerOption.shape}".`);
+      if (resolved.id === currentPrompt.answerId) {
+        const next = nextPrompt(currentPrompt.id);
+        delayNextPrompt(feedbackAudioDelayMs.correct);
+        playOneShotClip(feedbackAudio.correct, {
+          volume: 0.92,
+        });
+        setStatus(`Response registered for "${currentAnswer.colorName} ${currentAnswer.shape}". Loading the next prompt.`);
         onEvent({ type: 'response', note: 'Recognition response matched prompt.' });
-        const next = nextPrompt(prompt.id);
         setPrompt(next);
         setDisplayOptions(shuffleArray(next.options));
       } else {
-        const directMiss = intended.id !== prompt.answerId;
+        const directMiss = intended.id !== currentPrompt.answerId;
+        const next = nextPrompt(currentPrompt.id);
+        delayNextPrompt(feedbackAudioDelayMs.incorrect);
         setStatus(`No. ${resolved.colorName} ${resolved.shape} was registered instead.`);
         onEvent({
           type: 'incorrect',
@@ -151,15 +157,11 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
           onEvent({ type: 'disruption', note: 'Recognition mismatch due to layered interference.' });
         }
 
-        speakNo();
-        if (advanceTimeoutRef.current) {
-          window.clearTimeout(advanceTimeoutRef.current);
-        }
-        advanceTimeoutRef.current = window.setTimeout(() => {
-          const next = nextPrompt(prompt.id);
-          setPrompt(next);
-          setDisplayOptions(shuffleArray(next.options));
-        }, 720);
+        playOneShotClip(feedbackAudio.incorrect, {
+          volume: 0.92,
+        });
+        setPrompt(next);
+        setDisplayOptions(shuffleArray(next.options));
       }
     }, getActivationDelay(channels.apraxia));
   };

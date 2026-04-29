@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { feedbackAudio, feedbackAudioDelayMs, getRecognitionPromptAudio } from '../config/promptAudio';
 import { usePromptAudio } from '../hooks/usePromptAudio';
-import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
+import { getActivationDelay, getTargetDrift } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
@@ -62,13 +62,6 @@ function nextPrompt(currentId?: string): RecognitionPrompt {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-function noisyIndex(index: number, total: number, vision: number): number {
-  const jumpChance = vision / 180;
-  if (Math.random() > jumpChance) return index;
-  const offset = Math.random() > 0.5 ? 1 : -1;
-  return (index + offset + total) % total;
-}
-
 export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   const [prompt, setPrompt] = useState<RecognitionPrompt>(() => nextPrompt());
   const [displayOptions, setDisplayOptions] = useState<ShapeOption[]>(() => shuffleArray(prompt.options));
@@ -108,7 +101,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
     };
   }, []);
 
-  const handleChoice = (index: number): void => {
+  const handleChoice = (option: ShapeOption): void => {
     if (paused) return;
 
     const currentPrompt = prompt;
@@ -122,17 +115,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      const shiftedIndex = noisyIndex(index, displayOptions.length, channels.vision + channels.synesthesia * 0.25);
-      let resolvedIndex = shiftedIndex;
-
-      if (shouldDropIntent(channels.apraxia)) {
-        resolvedIndex = (shiftedIndex + 1) % displayOptions.length;
-      }
-
-      const resolved = displayOptions[resolvedIndex];
-      const intended = displayOptions[index];
-
-      if (resolved.id === currentPrompt.answerId) {
+      if (option.id === currentPrompt.answerId) {
         const next = nextPrompt(currentPrompt.id);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -143,19 +126,13 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
         setPrompt(next);
         setDisplayOptions(shuffleArray(next.options));
       } else {
-        const directMiss = intended.id !== currentPrompt.answerId;
         const next = nextPrompt(currentPrompt.id);
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${resolved.colorName} ${resolved.shape} was registered instead.`);
+        setStatus(`No. ${option.colorName} ${option.shape} was registered instead.`);
         onEvent({
           type: 'incorrect',
-          note: directMiss
-            ? 'Incorrect recognition choice selected.'
-            : 'Recognition response resolved incorrectly under layered interference.',
+          note: 'Incorrect recognition choice selected.',
         });
-        if (!directMiss) {
-          onEvent({ type: 'disruption', note: 'Recognition mismatch due to layered interference.' });
-        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,
@@ -201,7 +178,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
               type="button"
               className="recognition-option shape-card"
               aria-label={`Touch ${option.colorName} ${option.shape}`}
-              onClick={() => handleChoice(index)}
+              onClick={() => handleChoice(option)}
               style={{ transform: `translate(${drift.x.toFixed(1)}px, ${drift.y.toFixed(1)}px)` }}
             >
               <span

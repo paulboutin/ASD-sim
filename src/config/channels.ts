@@ -42,10 +42,10 @@ export const CHANNEL_CONFIG: ChannelConfig[] = [
 
 export const DEFAULT_LEVELS: ChannelLevels = {
   apraxia: 25,
-  stim: 20,
-  hearing: 15,
-  vision: 20,
-  synesthesia: 10,
+  stim: 25,
+  hearing: 50,
+  vision: 25,
+  synesthesia: 25,
 };
 
 export const PRESET_LIBRARY: Record<string, Partial<ChannelLevels>> = {

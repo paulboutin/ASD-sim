@@ -3,16 +3,16 @@ import type { AudioMixLevels, ChannelKey, ChannelLevels, TestId, VisualMixLevels
 
 const AUDIO_MIX_DEFAULTS: AudioMixLevels = {
   promptVoice: 100,
-  distortion: 100,
+  distortion: 50,
   intrusiveThoughts: 0,
 };
 
 const VISUAL_MIX_DEFAULTS: VisualMixLevels = {
-  blur: 100,
-  ghosting: 100,
-  noise: 100,
-  convex: 100,
-  flicker: 100,
+  blur: 50,
+  ghosting: 50,
+  noise: 50,
+  convex: 0,
+  flicker: 50,
 };
 
 const AUDIO_MIX_KEYS: (keyof AudioMixLevels)[] = ['promptVoice', 'distortion', 'intrusiveThoughts'];
@@ -158,7 +158,7 @@ export function loadPresetFromLocation(locationSearch: string, locationHash: str
     if (!intrusiveThoughtsEnabled) {
       nextAudioMix.intrusiveThoughts = 0;
     } else if (!('intrusiveThoughts' in explicitAudioMix)) {
-      nextAudioMix.intrusiveThoughts = 100;
+      nextAudioMix.intrusiveThoughts = 50;
     }
     changed = true;
   }

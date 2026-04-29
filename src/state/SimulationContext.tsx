@@ -19,16 +19,16 @@ import type {
 
 const DEFAULT_AUDIO_MIX: AudioMixLevels = {
   promptVoice: 100,
-  distortion: 100,
-  intrusiveThoughts: 100,
+  distortion: 50,
+  intrusiveThoughts: 50,
 };
 
 const DEFAULT_VISUAL_MIX: VisualMixLevels = {
-  blur: 100,
-  ghosting: 100,
-  noise: 100,
-  convex: 100,
-  flicker: 100,
+  blur: 50,
+  ghosting: 50,
+  noise: 50,
+  convex: 0,
+  flicker: 50,
 };
 
 interface SimulationState {

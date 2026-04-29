@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { feedbackAudio, feedbackAudioDelayMs, getColorPromptAudio } from '../config/promptAudio';
 import { usePromptAudio } from '../hooks/usePromptAudio';
-import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
+import { getActivationDelay, getTargetDrift } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
@@ -22,13 +22,6 @@ const COLOR_OPTIONS: ColorOption[] = [
 function nextColor(excluding?: string): ColorOption {
   const pool = excluding ? COLOR_OPTIONS.filter((item) => item.name !== excluding) : COLOR_OPTIONS;
   return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function shiftedIndex(index: number, length: number, vision: number, synesthesia: number): number {
-  const shiftChance = (vision + synesthesia * 0.45) / 180;
-  if (Math.random() > shiftChance) return index;
-  const shift = Math.random() > 0.5 ? 1 : -1;
-  return (index + shift + length) % length;
 }
 
 export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
@@ -68,7 +61,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
     };
   }, []);
 
-  const handleColorChoice = (index: number): void => {
+  const handleColorChoice = (option: ColorOption): void => {
     if (paused) return;
 
     const currentTarget = target;
@@ -81,16 +74,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      const driftedIndex = shiftedIndex(index, displayOptions.length, channels.vision, channels.synesthesia);
-      let resolvedIndex = driftedIndex;
-
-      if (shouldDropIntent(channels.apraxia)) {
-        resolvedIndex = (resolvedIndex + 1) % displayOptions.length;
-      }
-
-      const registered = displayOptions[resolvedIndex];
-      const intended = displayOptions[index];
-      if (registered.name === currentTarget.name) {
+      if (option.name === currentTarget.name) {
         const nextTarget = nextColor(currentTarget.name);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -100,19 +84,13 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
         onEvent({ type: 'response', note: `Color target matched: ${currentTarget.name}.` });
         setTarget(nextTarget);
       } else {
-        const directMiss = intended.name !== currentTarget.name;
         const nextTarget = nextColor(currentTarget.name);
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${registered.name} was captured while ${currentTarget.name} was requested.`);
+        setStatus(`No. ${option.name} was captured while ${currentTarget.name} was requested.`);
         onEvent({
           type: 'incorrect',
-          note: directMiss
-            ? `Incorrect color selected while ${currentTarget.name} was requested.`
-            : `Color response resolved incorrectly while targeting ${currentTarget.name}.`,
+          note: `Incorrect color selected while ${currentTarget.name} was requested.`,
         });
-        if (!directMiss) {
-          onEvent({ type: 'disruption', note: 'Color response shifted by visual/motor interference.' });
-        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,
@@ -152,7 +130,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
               type="button"
               className="color-swatch"
               aria-label={`Touch ${option.name}`}
-              onClick={() => handleColorChoice(index)}
+              onClick={() => handleColorChoice(option)}
               style={{
                 transform: `translate(${drift.x.toFixed(1)}px, ${drift.y.toFixed(1)}px) scale(${pulse.toFixed(3)})`,
               }}

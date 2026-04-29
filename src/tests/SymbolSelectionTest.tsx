@@ -7,7 +7,6 @@ import {
   getActivationDelay,
   getTargetDrift,
   getViewportRock,
-  shouldDropIntent,
 } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -15,19 +14,6 @@ import type { TestProps } from './TestTypes';
 function randomSymbol(excluding?: string): string {
   const filtered = excluding ? SYMBOL_ITEMS.filter((item) => item.label !== excluding) : SYMBOL_ITEMS;
   return filtered[Math.floor(Math.random() * filtered.length)].label;
-}
-
-function resolveRegistration(
-  intendedLabel: string,
-  allLabels: string[],
-  apraxia: number,
-  vision: number,
-): string {
-  const initialIndex = allLabels.indexOf(intendedLabel);
-  if (initialIndex === -1) return intendedLabel;
-
-  const bump = shouldDropIntent(apraxia) || Math.random() < vision / 200 ? 1 : 0;
-  return allLabels[(initialIndex + bump) % allLabels.length];
 }
 
 export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
@@ -82,10 +68,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      const labels = gridItems.map((item) => item.label);
-      const selected = resolveRegistration(label, labels, channels.apraxia, channels.vision);
-
-      if (selected === currentTarget) {
+      if (label === currentTarget) {
         const nextTarget = randomSymbol(currentTarget);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -95,19 +78,13 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
         setTarget(nextTarget);
         onEvent({ type: 'response', note: 'Target symbol selected.' });
       } else {
-        const directMiss = label !== currentTarget;
         const nextTarget = randomSymbol(currentTarget);
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${selected} was registered while ${currentTarget} was requested.`);
+        setStatus(`No. ${label} was registered while ${currentTarget} was requested.`);
         onEvent({
           type: 'incorrect',
-          note: directMiss
-            ? `Incorrect symbol selected while ${currentTarget} was requested.`
-            : `Symbol response resolved incorrectly while targeting ${currentTarget}.`,
+          note: `Incorrect symbol selected while ${currentTarget} was requested.`,
         });
-        if (!directMiss) {
-          onEvent({ type: 'disruption', note: 'Symbol mismatch under movement/vision interference.' });
-        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,

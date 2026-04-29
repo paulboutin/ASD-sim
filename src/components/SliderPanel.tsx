@@ -144,7 +144,7 @@ export function SliderPanel({
                 value={audioMix.promptVoice}
                 onChange={(event) => onAudioMixChange('promptVoice', Number(event.target.value))}
               />
-              <small>Controls the spoken prompt voice and the spoken “No.” feedback.</small>
+              <small>Controls the recorded prompt clips and retry cue.</small>
             </label>
 
             <section className="content-toggle-card content-toggle-inline">

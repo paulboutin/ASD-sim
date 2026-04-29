@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { usePromptVoice } from '../hooks/usePromptVoice';
+import { feedbackAudio, feedbackAudioDelayMs, getColorPromptAudio } from '../config/promptAudio';
+import { usePromptAudio } from '../hooks/usePromptAudio';
 import { getActivationDelay, getTargetDrift, shouldDropIntent } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -36,8 +37,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching color.');
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
-  const advanceTimeoutRef = useRef<number | null>(null);
-  const { speakNo } = usePromptVoice(`Touch ${target.name}.`, {
+  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getColorPromptAudio(target.name), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -65,16 +65,15 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
       if (responseTimeoutRef.current) {
         window.clearTimeout(responseTimeoutRef.current);
       }
-      if (advanceTimeoutRef.current) {
-        window.clearTimeout(advanceTimeoutRef.current);
-      }
     };
   }, []);
 
   const handleColorChoice = (index: number): void => {
     if (paused) return;
 
+    const currentTarget = target;
     onEvent({ type: 'attempt' });
+    stopClip();
     setStatus('Processing response...');
 
     if (responseTimeoutRef.current) {
@@ -91,30 +90,34 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
 
       const registered = displayOptions[resolvedIndex];
       const intended = displayOptions[index];
-      if (registered.name === target.name) {
-        setStatus(`Response registered for ${target.name}. Next color loaded.`);
-        onEvent({ type: 'response', note: `Color target matched: ${target.name}.` });
-        setTarget(nextColor(target.name));
+      if (registered.name === currentTarget.name) {
+        const nextTarget = nextColor(currentTarget.name);
+        delayNextPrompt(feedbackAudioDelayMs.correct);
+        playOneShotClip(feedbackAudio.correct, {
+          volume: 0.92,
+        });
+        setStatus(`Response registered for ${currentTarget.name}. Loading the next prompt.`);
+        onEvent({ type: 'response', note: `Color target matched: ${currentTarget.name}.` });
+        setTarget(nextTarget);
       } else {
-        const directMiss = intended.name !== target.name;
-        setStatus(`No. ${registered.name} was captured while ${target.name} was requested.`);
+        const directMiss = intended.name !== currentTarget.name;
+        const nextTarget = nextColor(currentTarget.name);
+        delayNextPrompt(feedbackAudioDelayMs.incorrect);
+        setStatus(`No. ${registered.name} was captured while ${currentTarget.name} was requested.`);
         onEvent({
           type: 'incorrect',
           note: directMiss
-            ? `Incorrect color selected while ${target.name} was requested.`
-            : `Color response resolved incorrectly while targeting ${target.name}.`,
+            ? `Incorrect color selected while ${currentTarget.name} was requested.`
+            : `Color response resolved incorrectly while targeting ${currentTarget.name}.`,
         });
         if (!directMiss) {
           onEvent({ type: 'disruption', note: 'Color response shifted by visual/motor interference.' });
         }
 
-        speakNo();
-        if (advanceTimeoutRef.current) {
-          window.clearTimeout(advanceTimeoutRef.current);
-        }
-        advanceTimeoutRef.current = window.setTimeout(() => {
-          setTarget(nextColor(target.name));
-        }, 720);
+        playOneShotClip(feedbackAudio.incorrect, {
+          volume: 0.92,
+        });
+        setTarget(nextTarget);
       }
     }, getActivationDelay(channels.apraxia));
   };

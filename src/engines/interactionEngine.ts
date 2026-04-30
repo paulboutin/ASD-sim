@@ -35,6 +35,51 @@ export function shouldDropIntent(apraxiaLevel: number): boolean {
   return Math.random() < apraxiaLevel / 180;
 }
 
+function interpolateLevel(level: number, points: Array<[number, number]>): number {
+  const boundedLevel = Math.max(0, Math.min(100, level));
+
+  for (let index = 1; index < points.length; index += 1) {
+    const [previousLevel, previousValue] = points[index - 1];
+    const [nextLevel, nextValue] = points[index];
+
+    if (boundedLevel <= nextLevel) {
+      const span = nextLevel - previousLevel;
+      const progress = span === 0 ? 0 : (boundedLevel - previousLevel) / span;
+      return previousValue + (nextValue - previousValue) * progress;
+    }
+  }
+
+  return points[points.length - 1][1];
+}
+
+export function getResponseAccuracyChance(apraxiaLevel: number, stimLevel: number, synesthesiaLevel: number): number {
+  const boundedApraxia = Math.max(0, Math.min(100, apraxiaLevel));
+  const boundedStim = Math.max(0, Math.min(100, stimLevel));
+  const boundedSynesthesia = Math.max(0, Math.min(100, synesthesiaLevel));
+  const apraxiaRatio = boundedApraxia / 100;
+
+  const apraxiaAccuracy = interpolateLevel(boundedApraxia, [
+    [0, 0.98],
+    [25, 0.85],
+    [50, 0.65],
+    [75, 0.4],
+    [100, 0.2],
+  ]);
+  const stimEffect = Math.sqrt(boundedStim / 100) * (0.353 + 0.147 * apraxiaRatio);
+  const synesthesiaEffect = Math.sqrt(boundedSynesthesia / 100) * (0.214 + 0.286 * apraxiaRatio);
+  const chance = apraxiaAccuracy * (1 - stimEffect) * (1 - synesthesiaEffect);
+
+  return Math.max(0.02, Math.min(0.98, chance));
+}
+
+export function shouldRegisterAccurateResponse(
+  apraxiaLevel: number,
+  stimLevel: number,
+  synesthesiaLevel: number,
+): boolean {
+  return Math.random() < getResponseAccuracyChance(apraxiaLevel, stimLevel, synesthesiaLevel);
+}
+
 export function getViewportRock(stimLevel: number, tick: number): Offset {
   const amplitude = stimLevel * 0.16;
   const x = Math.sin(tick * 0.0028) * amplitude + Math.sin(tick * 0.019) * (stimLevel * 0.03);

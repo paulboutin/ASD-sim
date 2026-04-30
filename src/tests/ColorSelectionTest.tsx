@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { feedbackAudio, feedbackAudioDelayMs, getColorPromptAudio } from '../config/promptAudio';
 import { usePromptAudio } from '../hooks/usePromptAudio';
-import { getActivationDelay, getTargetDrift } from '../engines/interactionEngine';
+import { getActivationDelay, getTargetDrift, shouldRegisterAccurateResponse } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
@@ -22,6 +22,10 @@ const COLOR_OPTIONS: ColorOption[] = [
 function nextColor(excluding?: string): ColorOption {
   const pool = excluding ? COLOR_OPTIONS.filter((item) => item.name !== excluding) : COLOR_OPTIONS;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function misregisteredColor(targetName: string): ColorOption {
+  return nextColor(targetName);
 }
 
 export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
@@ -74,7 +78,11 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      if (option.name === currentTarget.name) {
+      const correctSelection = option.name === currentTarget.name;
+      const accuratelyRegistered =
+        correctSelection && shouldRegisterAccurateResponse(channels.apraxia, channels.stim, channels.synesthesia);
+
+      if (accuratelyRegistered) {
         const nextTarget = nextColor(currentTarget.name);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -85,12 +93,18 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
         setTarget(nextTarget);
       } else {
         const nextTarget = nextColor(currentTarget.name);
+        const registered = correctSelection ? misregisteredColor(currentTarget.name) : option;
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${option.name} was captured while ${currentTarget.name} was requested.`);
+        setStatus(`No. ${registered.name} was captured while ${currentTarget.name} was requested.`);
         onEvent({
           type: 'incorrect',
-          note: `Incorrect color selected while ${currentTarget.name} was requested.`,
+          note: correctSelection
+            ? `Color response misregistered while targeting ${currentTarget.name}.`
+            : `Incorrect color selected while ${currentTarget.name} was requested.`,
         });
+        if (correctSelection) {
+          onEvent({ type: 'disruption', note: 'Color accuracy disrupted by interaction interference.' });
+        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,

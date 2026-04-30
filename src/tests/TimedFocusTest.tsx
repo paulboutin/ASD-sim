@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getFocusPromptAudio } from '../config/promptAudio';
-import { getInterruptionOpacity, getTargetDrift } from '../engines/interactionEngine';
+import { feedbackAudio, feedbackAudioDelayMs, getFocusPromptAudio } from '../config/promptAudio';
+import {
+  getInterruptionOpacity,
+  getTargetDrift,
+  shouldRegisterAccurateResponse,
+} from '../engines/interactionEngine';
 import { usePromptAudio } from '../hooks/usePromptAudio';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -8,13 +12,14 @@ import type { TestProps } from './TestTypes';
 interface FocusPrompt {
   id: string;
   label: string;
+  expectedResponse: string;
 }
 
 const PROMPTS: FocusPrompt[] = [
-  { id: 'ready-attention', label: 'Touch Ready Attention.' },
-  { id: 'need-break', label: 'Choose Need Break.' },
-  { id: 'continue', label: 'Press Continue.' },
-  { id: 'pause', label: 'Choose Pause.' },
+  { id: 'ready-attention', label: 'Touch Ready Attention.', expectedResponse: 'Ready Attention' },
+  { id: 'need-break', label: 'Choose Need Break.', expectedResponse: 'Need Break' },
+  { id: 'continue', label: 'Press Continue.', expectedResponse: 'Continue' },
+  { id: 'pause', label: 'Choose Pause.', expectedResponse: 'Pause' },
 ];
 
 const RESPONSES = ['Ready Attention', 'Need Break', 'Continue', 'Pause'];
@@ -30,7 +35,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
   const [awaitingResponse, setAwaitingResponse] = useState(true);
   const [status, setStatus] = useState('Respond to each prompt while distractions are active.');
   const [tick, setTick] = useState(0);
-  usePromptAudio(getFocusPromptAudio(currentPrompt.id), {
+  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getFocusPromptAudio(currentPrompt.id), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -76,14 +81,40 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
   const handleResponse = (response: string, index: number): void => {
     if (paused) return;
 
-    const drift = getTargetDrift(channels.apraxia + channels.stim * 0.2, tick, index + 30);
+    const prompt = currentPrompt;
+    onEvent({ type: 'attempt' });
+    stopClip();
 
-    if (Math.abs(drift.x) + Math.abs(drift.y) > 18) {
+    const drift = getTargetDrift(channels.apraxia + channels.stim * 0.2, tick, index + 30);
+    const correctSelection = response === prompt.expectedResponse;
+    const accuratelyRegistered =
+      correctSelection && shouldRegisterAccurateResponse(channels.apraxia, channels.stim, channels.synesthesia);
+
+    if (Math.abs(drift.x) + Math.abs(drift.y) > 18 || (correctSelection && !accuratelyRegistered)) {
+      delayNextPrompt(feedbackAudioDelayMs.incorrect);
       setStatus('Response was disrupted by movement interference. Try again.');
+      onEvent({ type: 'incorrect', note: `Timed focus response misregistered for ${prompt.expectedResponse}.` });
       onEvent({ type: 'disruption', note: 'Timed focus response interrupted during motion surge.' });
+      playOneShotClip(feedbackAudio.incorrect, {
+        volume: 0.92,
+      });
       return;
     }
 
+    if (!correctSelection) {
+      delayNextPrompt(feedbackAudioDelayMs.incorrect);
+      setStatus(`No. ${response} was registered while ${prompt.expectedResponse} was requested.`);
+      onEvent({ type: 'incorrect', note: `Incorrect timed focus response selected for ${prompt.expectedResponse}.` });
+      playOneShotClip(feedbackAudio.incorrect, {
+        volume: 0.92,
+      });
+      return;
+    }
+
+    delayNextPrompt(feedbackAudioDelayMs.correct);
+    playOneShotClip(feedbackAudio.correct, {
+      volume: 0.92,
+    });
     setAwaitingResponse(false);
     setStatus(`Response noted: ${response}. Awaiting next prompt.`);
     onEvent({ type: 'response', note: `Timed response captured: ${response}.` });

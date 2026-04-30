@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { feedbackAudio, feedbackAudioDelayMs, getRecognitionPromptAudio } from '../config/promptAudio';
 import { usePromptAudio } from '../hooks/usePromptAudio';
-import { getActivationDelay, getTargetDrift } from '../engines/interactionEngine';
+import { getActivationDelay, getTargetDrift, shouldRegisterAccurateResponse } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
 
@@ -62,6 +62,11 @@ function nextPrompt(currentId?: string): RecognitionPrompt {
   return options[Math.floor(Math.random() * options.length)];
 }
 
+function misregisteredShapeOption(prompt: RecognitionPrompt): ShapeOption {
+  const options = prompt.options.filter((option) => option.id !== prompt.answerId);
+  return options[Math.floor(Math.random() * options.length)] ?? prompt.options[0];
+}
+
 export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVolume, onEvent }: TestProps) {
   const [prompt, setPrompt] = useState<RecognitionPrompt>(() => nextPrompt());
   const [displayOptions, setDisplayOptions] = useState<ShapeOption[]>(() => shuffleArray(prompt.options));
@@ -115,7 +120,11 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      if (option.id === currentPrompt.answerId) {
+      const correctSelection = option.id === currentPrompt.answerId;
+      const accuratelyRegistered =
+        correctSelection && shouldRegisterAccurateResponse(channels.apraxia, channels.stim, channels.synesthesia);
+
+      if (accuratelyRegistered) {
         const next = nextPrompt(currentPrompt.id);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -127,12 +136,18 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
         setDisplayOptions(shuffleArray(next.options));
       } else {
         const next = nextPrompt(currentPrompt.id);
+        const registered = correctSelection ? misregisteredShapeOption(currentPrompt) : option;
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${option.colorName} ${option.shape} was registered instead.`);
+        setStatus(`No. ${registered.colorName} ${registered.shape} was registered instead.`);
         onEvent({
           type: 'incorrect',
-          note: 'Incorrect recognition choice selected.',
+          note: correctSelection
+            ? 'Recognition response misregistered under interaction interference.'
+            : 'Incorrect recognition choice selected.',
         });
+        if (correctSelection) {
+          onEvent({ type: 'disruption', note: 'Recognition accuracy disrupted by interaction interference.' });
+        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,

@@ -7,6 +7,7 @@ import {
   getActivationDelay,
   getTargetDrift,
   getViewportRock,
+  shouldRegisterAccurateResponse,
 } from '../engines/interactionEngine';
 import { shuffleArray } from '../utils/shuffle';
 import type { TestProps } from './TestTypes';
@@ -68,7 +69,11 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
     }
 
     responseTimeoutRef.current = window.setTimeout(() => {
-      if (label === currentTarget) {
+      const correctSelection = label === currentTarget;
+      const accuratelyRegistered =
+        correctSelection && shouldRegisterAccurateResponse(channels.apraxia, channels.stim, channels.synesthesia);
+
+      if (accuratelyRegistered) {
         const nextTarget = randomSymbol(currentTarget);
         delayNextPrompt(feedbackAudioDelayMs.correct);
         playOneShotClip(feedbackAudio.correct, {
@@ -79,12 +84,18 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
         onEvent({ type: 'response', note: 'Target symbol selected.' });
       } else {
         const nextTarget = randomSymbol(currentTarget);
+        const registered = correctSelection ? randomSymbol(currentTarget) : label;
         delayNextPrompt(feedbackAudioDelayMs.incorrect);
-        setStatus(`No. ${label} was registered while ${currentTarget} was requested.`);
+        setStatus(`No. ${registered} was registered while ${currentTarget} was requested.`);
         onEvent({
           type: 'incorrect',
-          note: `Incorrect symbol selected while ${currentTarget} was requested.`,
+          note: correctSelection
+            ? `Symbol response misregistered while targeting ${currentTarget}.`
+            : `Incorrect symbol selected while ${currentTarget} was requested.`,
         });
+        if (correctSelection) {
+          onEvent({ type: 'disruption', note: 'Symbol accuracy disrupted by interaction interference.' });
+        }
 
         playOneShotClip(feedbackAudio.incorrect, {
           volume: 0.92,

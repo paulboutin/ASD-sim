@@ -60,13 +60,13 @@ export function getResponseAccuracyChance(apraxiaLevel: number, stimLevel: numbe
 
   const apraxiaAccuracy = interpolateLevel(boundedApraxia, [
     [0, 0.98],
-    [25, 0.85],
-    [50, 0.65],
-    [75, 0.4],
-    [100, 0.2],
+    [25, 0.94],
+    [50, 0.78],
+    [75, 0.55],
+    [100, 0.25],
   ]);
-  const stimEffect = Math.sqrt(boundedStim / 100) * (0.353 + 0.147 * apraxiaRatio);
-  const synesthesiaEffect = Math.sqrt(boundedSynesthesia / 100) * (0.214 + 0.286 * apraxiaRatio);
+  const stimEffect = Math.sqrt(boundedStim / 100) * (0.2 + 0.3 * apraxiaRatio);
+  const synesthesiaEffect = Math.sqrt(boundedSynesthesia / 100) * (0.08 + 0.42 * apraxiaRatio);
   const chance = apraxiaAccuracy * (1 - stimEffect) * (1 - synesthesiaEffect);
 
   return Math.max(0.02, Math.min(0.98, chance));

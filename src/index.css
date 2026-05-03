@@ -946,6 +946,11 @@ input[type='text'][readonly] {
   background: linear-gradient(170deg, #fefefe, #f3f8fb);
 }
 
+.stats-panel-inline {
+  position: sticky;
+  top: 1rem;
+}
+
 .fullscreen-hud {
   position: absolute;
   left: 0.85rem;

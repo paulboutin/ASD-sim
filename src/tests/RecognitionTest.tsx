@@ -74,7 +74,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
   const answerOption = prompt.options.find((option) => option.id === prompt.answerId) ?? prompt.options[0];
-  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getRecognitionPromptAudio(prompt.id), {
+  const { delayNextPrompt, playOneShotClip, promptEnded, stopClip } = usePromptAudio(getRecognitionPromptAudio(prompt.id), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -162,24 +162,14 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
     <section className="test-card" aria-live="polite">
       <header className="test-header">
         <h3>Object/Color/Shape Recognition Test</h3>
-        <p>Choose the requested shape-color target using paired spoken and visual prompts while options swap.</p>
+        <p>Choose the requested shape-color target from the spoken prompt while options swap.</p>
       </header>
 
       <div className="target-callout prompt-callout">
-        <span className="prompt-shape-chip" aria-hidden="true">
-          <span
-            className={`shape-visual prompt-shape ${answerOption.shape}`}
-            style={
-              answerOption.shape === 'triangle'
-                ? { color: answerOption.colorHex }
-                : { backgroundColor: answerOption.colorHex }
-            }
-          />
-        </span>
         <div className="prompt-callout-copy">
           <span className="prompt-callout-label">Current prompt</span>
           <strong>
-            Touch {answerOption.colorName} {answerOption.shape}
+            {promptEnded ? `Touch ${answerOption.colorName} ${answerOption.shape}` : ''}
           </strong>
         </div>
       </div>

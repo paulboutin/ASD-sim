@@ -22,6 +22,9 @@ export function DebriefPage() {
     );
   }
 
+  const scoredResponses = debriefSnapshot.responses + debriefSnapshot.incorrectResponses;
+  const percentCorrect = scoredResponses === 0 ? 0 : Math.round((debriefSnapshot.responses / scoredResponses) * 100);
+
   return (
     <main className="page">
       <section className="panel">
@@ -39,7 +42,7 @@ export function DebriefPage() {
           <li>Attempts: {debriefSnapshot.attempts}</li>
           <li>Incorrect responses: {debriefSnapshot.incorrectResponses}</li>
           <li>Disruptions observed: {debriefSnapshot.disruptions}</li>
-          <li>Timed prompts shown: {debriefSnapshot.prompts}</li>
+          <li>Percent correct: {percentCorrect}%</li>
         </ul>
       </section>
 

@@ -23,8 +23,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
   const [gridItems, setGridItems] = useState(() => shuffleArray(SYMBOL_ITEMS));
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
-  const targetItem = SYMBOL_ITEMS.find((item) => item.label === target) ?? SYMBOL_ITEMS[0];
-  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getSymbolPromptAudio(target), {
+  const { delayNextPrompt, playOneShotClip, promptEnded, stopClip } = usePromptAudio(getSymbolPromptAudio(target), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -116,12 +115,9 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
       </header>
 
       <div className="target-callout prompt-callout">
-        <span className="prompt-symbol-chip" aria-hidden="true">
-          <SymbolIcon icon={targetItem.icon} className="symbol-icon" />
-        </span>
         <div className="prompt-callout-copy">
           <span className="prompt-callout-label">Current prompt</span>
-          <strong>Touch {target}</strong>
+          <strong>{promptEnded ? `Touch ${target}` : ''}</strong>
         </div>
       </div>
 

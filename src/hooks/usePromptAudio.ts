@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PlayClipOptions {
   playbackRate?: number;
@@ -19,6 +19,7 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
   const promptDelayRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const holdPromptUntilRef = useRef(0);
+  const [promptEnded, setPromptEnded] = useState(!enabled || !promptSrc);
   const normalizedVolume = clampVolume(volume / 100);
 
   const clearPendingPrompt = useCallback(() => {
@@ -47,6 +48,7 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
 
       clearPendingPrompt();
       stopClip();
+      setPromptEnded(false);
 
       const audio = new Audio(src);
       audio.preload = 'auto';
@@ -59,6 +61,7 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
           if (audioRef.current === audio) {
             audioRef.current = null;
           }
+          setPromptEnded(true);
         },
         { once: true },
       );
@@ -67,6 +70,7 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
         if (audioRef.current === audio) {
           audioRef.current = null;
         }
+        setPromptEnded(true);
       });
     },
     [clearPendingPrompt, enabled, normalizedVolume, paused, stopClip],
@@ -98,6 +102,9 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
   useEffect(() => {
     if (enabled && !paused && promptSrc && normalizedVolume > 0) {
       clearPendingPrompt();
+      const hidePromptTimer = window.setTimeout(() => {
+        setPromptEnded(false);
+      }, 0);
       const waitMs = Math.max(180, holdPromptUntilRef.current - Date.now());
 
       promptDelayRef.current = window.setTimeout(() => {
@@ -105,11 +112,18 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
       }, waitMs);
 
       return () => {
+        window.clearTimeout(hidePromptTimer);
         clearPendingPrompt();
       };
     }
 
     stopClip();
+    const showPromptTimer = window.setTimeout(() => {
+      setPromptEnded(true);
+    }, 0);
+    return () => {
+      window.clearTimeout(showPromptTimer);
+    };
   }, [clearPendingPrompt, enabled, normalizedVolume, paused, playClip, promptSrc, stopClip]);
 
   useEffect(() => {
@@ -122,6 +136,7 @@ export function usePromptAudio(promptSrc: string | null, { enabled, paused, volu
     delayNextPrompt,
     playClip,
     playOneShotClip,
+    promptEnded,
     stopClip,
   };
 }

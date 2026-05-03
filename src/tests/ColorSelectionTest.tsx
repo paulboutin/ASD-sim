@@ -34,7 +34,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
   const [status, setStatus] = useState('Listen for the spoken prompt and touch the matching color.');
   const [tick, setTick] = useState(0);
   const responseTimeoutRef = useRef<number | null>(null);
-  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getColorPromptAudio(target.name), {
+  const { delayNextPrompt, playOneShotClip, promptEnded, stopClip } = usePromptAudio(getColorPromptAudio(target.name), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -118,17 +118,13 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
     <section className="test-card" aria-live="polite">
       <header className="test-header">
         <h3>Color Selection Test</h3>
-        <p>
-          Spoken prompts now pair with a color swatch so the task stays symbol-plus-word instead of text-only.
-          This test focuses on targeting and sensory conflict rather than speed.
-        </p>
+        <p>This test focuses on color identification and sensory conflict rather than speed.</p>
       </header>
 
       <div className="target-callout prompt-callout">
-        <span className="prompt-color-chip" style={{ backgroundColor: target.hex }} aria-hidden="true" />
         <div className="prompt-callout-copy">
           <span className="prompt-callout-label">Current prompt</span>
-          <strong>Touch {target.name}</strong>
+          <strong>{promptEnded ? `Touch ${target.name}` : ''}</strong>
         </div>
       </div>
 

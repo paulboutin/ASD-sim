@@ -35,7 +35,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
   const [awaitingResponse, setAwaitingResponse] = useState(true);
   const [status, setStatus] = useState('Respond to each prompt while distractions are active.');
   const [tick, setTick] = useState(0);
-  const { delayNextPrompt, playOneShotClip, stopClip } = usePromptAudio(getFocusPromptAudio(currentPrompt.id), {
+  const { delayNextPrompt, playOneShotClip, promptEnded, stopClip } = usePromptAudio(getFocusPromptAudio(currentPrompt.id), {
     enabled: audioEnabled,
     paused,
     volume: promptVoiceVolume,
@@ -130,7 +130,7 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
         </p>
       </header>
 
-      <div className="target-callout">{currentPrompt.label}</div>
+      <div className="target-callout">{promptEnded ? currentPrompt.label : ''}</div>
 
       <div className="focus-response-grid">
         {responseOrder.map((response, index) => {

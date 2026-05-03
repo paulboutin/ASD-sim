@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChannelReadout } from '../components/ChannelReadout';
 import { SimulationControls } from '../components/SimulationControls';
 import { SliderPanel } from '../components/SliderPanel';
 import { VisualEffectsLayer } from '../components/VisualEffectsLayer';
@@ -47,6 +46,12 @@ function nextStats(stats: SessionStats, event: SimulationEvent): SessionStats {
   }
 }
 
+function getPercentCorrect(stats: SessionStats): number {
+  const scoredResponses = stats.responses + stats.incorrectResponses;
+  if (scoredResponses === 0) return 0;
+  return Math.round((stats.responses / scoredResponses) * 100);
+}
+
 export function SimulationPage() {
   const navigate = useNavigate();
   const simulationRef = useRef<HTMLElement | null>(null);
@@ -90,6 +95,7 @@ export function SimulationPage() {
     }),
     [channels, effectiveVision],
   );
+  const percentCorrect = getPercentCorrect(stats);
 
   useEffect(() => {
     if (warningsAccepted) return;
@@ -245,6 +251,45 @@ export function SimulationPage() {
           </div>
         ) : null}
 
+        {muted ? (
+          <section className={`panel audio-note ${isFullscreen ? 'audio-note-floating' : ''}`}>
+            <p>
+              Audio output is currently muted. Use <strong>Unmute Audio</strong> to hear spoken prompts and
+              layered hearing distortion.
+            </p>
+          </section>
+        ) : null}
+
+        <section className={`simulation-layout ${isFullscreen ? 'simulation-layout-fullscreen' : ''}`}>
+          {!isFullscreen ? (
+            <section className="panel stats-panel stats-panel-inline">
+              <h2>Current Session Activity</h2>
+              <ul>
+                <li>Attempts: {stats.attempts}</li>
+                <li>Incorrect responses: {stats.incorrectResponses}</li>
+                <li>Disruptions observed: {stats.disruptions}</li>
+                <li>Percent correct: {percentCorrect}%</li>
+              </ul>
+            </section>
+          ) : null}
+
+          <VisualEffectsLayer
+            vision={effectiveVision}
+            synesthesia={channels.synesthesia}
+            visualMix={visualMix}
+            tick={tick}
+          >
+            <TestComponent
+              key={sessionKey}
+              channels={effectiveChannels}
+              paused={paused}
+              audioEnabled={!muted}
+              promptVoiceVolume={audioMix.promptVoice}
+              onEvent={handleEvent}
+            />
+          </VisualEffectsLayer>
+        </section>
+
         {settingsOpen ? (
           <section className={`panel settings-drawer ${isFullscreen ? 'settings-drawer-floating' : ''}`}>
             <SliderPanel
@@ -264,35 +309,6 @@ export function SimulationPage() {
           </section>
         ) : null}
 
-        {muted ? (
-          <section className={`panel audio-note ${isFullscreen ? 'audio-note-floating' : ''}`}>
-            <p>
-              Audio output is currently muted. Use <strong>Unmute Audio</strong> to hear spoken prompts and
-              layered hearing distortion.
-            </p>
-          </section>
-        ) : null}
-
-        <section className={`simulation-layout ${isFullscreen ? 'simulation-layout-fullscreen' : ''}`}>
-          {!isFullscreen ? <ChannelReadout channels={effectiveChannels} /> : null}
-
-          <VisualEffectsLayer
-            vision={effectiveVision}
-            synesthesia={channels.synesthesia}
-            visualMix={visualMix}
-            tick={tick}
-          >
-            <TestComponent
-              key={sessionKey}
-              channels={effectiveChannels}
-              paused={paused}
-              audioEnabled={!muted}
-              promptVoiceVolume={audioMix.promptVoice}
-              onEvent={handleEvent}
-            />
-          </VisualEffectsLayer>
-        </section>
-
         {isFullscreen ? (
           <div className="fullscreen-hud">
             <div className="fullscreen-hud-card">
@@ -302,6 +318,7 @@ export function SimulationPage() {
                 <li>Audio: {muted ? 'Muted' : 'On'}</li>
                 <li>Attempts: {stats.attempts}</li>
                 <li>Incorrect: {stats.incorrectResponses}</li>
+                <li>Percent correct: {percentCorrect}%</li>
               </ul>
             </div>
             <div className="fullscreen-hud-card">
@@ -316,16 +333,6 @@ export function SimulationPage() {
             </div>
           </div>
         ) : null}
-      </section>
-
-      <section className={`panel stats-panel ${isFullscreen ? 'fullscreen-hidden' : ''}`}>
-        <h2>Current Session Activity</h2>
-        <ul>
-          <li>Attempts: {stats.attempts}</li>
-          <li>Incorrect responses: {stats.incorrectResponses}</li>
-          <li>Disruptions observed: {stats.disruptions}</li>
-          <li>Timed prompts shown: {stats.prompts}</li>
-        </ul>
       </section>
     </main>
   );

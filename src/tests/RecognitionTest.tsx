@@ -87,7 +87,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
       setTick((value) => value + 90);
     }, 90);
 
-    const swapCadence = Math.max(780, 2800 - channels.stim * 12 - channels.vision * 9);
+    const swapCadence = Math.max(780, 2800 - channels.stim * 12);
     const swapInterval = window.setInterval(() => {
       setDisplayOptions((current) => shuffleArray(current));
     }, swapCadence);
@@ -96,7 +96,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
       window.clearInterval(tickInterval);
       window.clearInterval(swapInterval);
     };
-  }, [channels.stim, channels.vision, paused]);
+  }, [channels.stim, paused]);
 
   useEffect(() => {
     return () => {
@@ -176,7 +176,7 @@ export function RecognitionTest({ channels, paused, audioEnabled, promptVoiceVol
 
       <div className="recognition-grid">
         {displayOptions.map((option, index) => {
-          const drift = getTargetDrift(channels.apraxia + channels.vision * 0.25, tick, index + 10);
+          const drift = getTargetDrift(channels.apraxia + channels.stim * 0.2, tick, index + 10);
           return (
             <button
               key={option.id}

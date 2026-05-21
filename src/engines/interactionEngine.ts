@@ -10,6 +10,8 @@ function surge(level: number, tick: number, seed: number): number {
 }
 
 export function getTargetDrift(level: number, tick: number, seed: number): Offset {
+  if (level <= 0) return { x: 0, y: 0 };
+
   const waveSurge = surge(level, tick, seed);
   const amplitude = level * 0.2 * waveSurge;
   const tremor = level * 0.06;
@@ -81,6 +83,8 @@ export function shouldRegisterAccurateResponse(
 }
 
 export function getViewportRock(stimLevel: number, tick: number): Offset {
+  if (stimLevel <= 0) return { x: 0, y: 0 };
+
   const amplitude = stimLevel * 0.16;
   const x = Math.sin(tick * 0.0028) * amplitude + Math.sin(tick * 0.019) * (stimLevel * 0.03);
   const y = Math.cos(tick * 0.0036) * amplitude * 0.6;

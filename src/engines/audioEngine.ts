@@ -7,6 +7,7 @@ interface AudioControls {
   hearingLevel: number;
   synesthesiaLevel: number;
   intrusiveThoughtsEnabled: boolean;
+  masterVolume: number;
   distortionVolume: number;
   intrusiveThoughtsVolume: number;
 }
@@ -155,12 +156,14 @@ export function useAudioEngine({
   hearingLevel,
   synesthesiaLevel,
   intrusiveThoughtsEnabled,
+  masterVolume,
   distortionVolume,
   intrusiveThoughtsVolume,
 }: AudioControls): { triggerCrossSensoryTone: () => void } {
   const nodesRef = useRef<AudioNodes | null>(null);
   const modulationRef = useRef<number | null>(null);
   const intrusiveTimerRef = useRef<number | null>(null);
+  const masterMix = Math.max(0, Math.min(1, masterVolume / 100));
   const distortionMix = Math.max(0, Math.min(1, distortionVolume / 100));
   const intrusiveMix = Math.max(0, Math.min(1, intrusiveThoughtsVolume / 100));
 
@@ -201,7 +204,7 @@ export function useAudioEngine({
     const hearingMix = hearingLevel / 100;
     const mixedHearing = hearingMix * distortionMix;
 
-    nodes.masterGain.gain.setTargetAtTime(active ? 0.95 : 0, nodes.context.currentTime, 0.06);
+    nodes.masterGain.gain.setTargetAtTime(active ? 0.95 * masterMix : 0, nodes.context.currentTime, 0.06);
     nodes.buzzGain.gain.setTargetAtTime(active ? mixedHearing * 0.09 : 0, nodes.context.currentTime, 0.08);
     nodes.fluorescentGain.gain.setTargetAtTime(active ? mixedHearing * 0.024 : 0, nodes.context.currentTime, 0.05);
     nodes.toneGain.gain.setTargetAtTime(active ? mixedHearing * 0.075 : 0, nodes.context.currentTime, 0.08);
@@ -250,7 +253,7 @@ export function useAudioEngine({
         );
       }, 290);
     }
-  }, [distortionMix, enabled, muted, paused, hearingLevel]);
+  }, [distortionMix, enabled, masterMix, muted, paused, hearingLevel]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -261,7 +264,7 @@ export function useAudioEngine({
     }
 
     const active =
-      enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12 && intrusiveMix > 0;
+      enabled && !muted && !paused && intrusiveThoughtsEnabled && hearingLevel >= 12 && intrusiveMix > 0 && masterMix > 0;
     if (!active) return;
 
     const scheduleThought = (): void => {
@@ -279,7 +282,7 @@ export function useAudioEngine({
         utterance.lang = voice?.lang ?? 'en-US';
         utterance.pitch = 1.12 + Math.random() * 0.08;
         utterance.rate = 0.84 + Math.random() * 0.08;
-        utterance.volume = Math.min(0.86, 0.36 + hearingLevel / 150) * intrusiveMix;
+        utterance.volume = Math.min(0.86, 0.36 + hearingLevel / 150) * intrusiveMix * masterMix;
 
         synthesis.speak(utterance);
         scheduleThought();
@@ -294,7 +297,7 @@ export function useAudioEngine({
         intrusiveTimerRef.current = null;
       }
     };
-  }, [enabled, intrusiveMix, intrusiveThoughtsEnabled, muted, paused, hearingLevel]);
+  }, [enabled, intrusiveMix, intrusiveThoughtsEnabled, masterMix, muted, paused, hearingLevel]);
 
   const triggerCrossSensoryTone = useCallback(() => {
     const nodes = nodesRef.current;

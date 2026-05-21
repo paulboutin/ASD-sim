@@ -126,7 +126,7 @@ export function SymbolSelectionTest({ channels, paused, audioEnabled, promptVoic
         style={{ transform: `translate(${rock.x.toFixed(1)}px, ${rock.y.toFixed(1)}px)` }}
       >
         {gridItems.map((item, index) => {
-          const drift = getTargetDrift(channels.apraxia + channels.synesthesia * 0.35, tick, index + 1);
+          const drift = getTargetDrift(channels.apraxia + channels.stim * 0.2, tick, index + 1);
 
           return (
             <button

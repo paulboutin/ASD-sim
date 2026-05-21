@@ -29,7 +29,7 @@ export const CHANNEL_CONFIG: ChannelConfig[] = [
   {
     key: 'vision',
     label: 'Vision Distortions',
-    description: 'Applies blur, contrast shifts, ghosting, and visual noise within the simulated area.',
+    description: 'Master intensity for blur, ghosting, visual noise, and fluorescent flicker.',
     max: 100,
   },
   {

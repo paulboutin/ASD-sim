@@ -46,7 +46,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
     const tickInterval = window.setInterval(() => {
       setTick((value) => value + 70);
     }, 70);
-    const swapCadence = Math.max(780, 2700 - channels.vision * 10 - channels.stim * 8);
+    const swapCadence = Math.max(780, 2700 - channels.stim * 8);
     const swapInterval = window.setInterval(() => {
       setDisplayOptions((current) => shuffleArray(current));
     }, swapCadence);
@@ -55,7 +55,7 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
       window.clearInterval(tickInterval);
       window.clearInterval(swapInterval);
     };
-  }, [channels.stim, channels.vision, paused]);
+  }, [channels.stim, paused]);
 
   useEffect(() => {
     return () => {
@@ -130,9 +130,9 @@ export function ColorSelectionTest({ channels, paused, audioEnabled, promptVoice
 
       <div className="color-grid">
         {displayOptions.map((option, index) => {
-          const drift = getTargetDrift(channels.apraxia + channels.vision * 0.35, tick, index + 60);
+          const drift = getTargetDrift(channels.apraxia + channels.stim * 0.2, tick, index + 60);
           const hueShift = Math.sin((tick + index * 160) * 0.005) * channels.synesthesia * 0.7;
-          const pulse = 1 + Math.sin((tick + index * 50) * 0.008) * channels.vision * 0.0018;
+          const pulse = 1 + Math.sin((tick + index * 50) * 0.008) * channels.stim * 0.0012;
 
           return (
             <button

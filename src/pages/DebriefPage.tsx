@@ -54,6 +54,7 @@ export function DebriefPage() {
           <li>Hearing distortions: {debriefSnapshot.channelLevels.hearing}</li>
           <li>Vision distortions: {debriefSnapshot.channelLevels.vision}</li>
           <li>Cross-sensory interference: {debriefSnapshot.channelLevels.synesthesia}</li>
+          <li>Audio master volume: {debriefSnapshot.audioMixLevels.masterVolume}</li>
           <li>Prompt voice volume: {debriefSnapshot.audioMixLevels.promptVoice}</li>
           <li>Distraction audio volume: {debriefSnapshot.audioMixLevels.distortion}</li>
           <li>Intrusive-thought volume: {debriefSnapshot.audioMixLevels.intrusiveThoughts}</li>

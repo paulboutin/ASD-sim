@@ -18,6 +18,7 @@ import type {
 } from '../types/simulation';
 
 const DEFAULT_AUDIO_MIX: AudioMixLevels = {
+  masterVolume: 100,
   promptVoice: 100,
   distortion: 50,
   intrusiveThoughts: 50,

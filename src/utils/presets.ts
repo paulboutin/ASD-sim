@@ -2,6 +2,7 @@ import { CHANNEL_KEYS, DEFAULT_LEVELS, PRESET_LIBRARY } from '../config/channels
 import type { AudioMixLevels, ChannelKey, ChannelLevels, TestId, VisualMixLevels } from '../types/simulation';
 
 const AUDIO_MIX_DEFAULTS: AudioMixLevels = {
+  masterVolume: 100,
   promptVoice: 100,
   distortion: 50,
   intrusiveThoughts: 0,
@@ -15,7 +16,7 @@ const VISUAL_MIX_DEFAULTS: VisualMixLevels = {
   flicker: 50,
 };
 
-const AUDIO_MIX_KEYS: (keyof AudioMixLevels)[] = ['promptVoice', 'distortion', 'intrusiveThoughts'];
+const AUDIO_MIX_KEYS: (keyof AudioMixLevels)[] = ['masterVolume', 'promptVoice', 'distortion', 'intrusiveThoughts'];
 const VISUAL_MIX_KEYS: (keyof VisualMixLevels)[] = ['blur', 'ghosting', 'noise', 'convex', 'flicker'];
 const TEST_IDS: TestId[] = ['symbol-selection', 'recognition', 'timed-focus', 'color-selection'];
 

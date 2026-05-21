@@ -3,6 +3,7 @@ export type ChannelKey = 'apraxia' | 'stim' | 'hearing' | 'vision' | 'synesthesi
 export type ChannelLevels = Record<ChannelKey, number>;
 
 export interface AudioMixLevels {
+  masterVolume: number;
   promptVoice: number;
   distortion: number;
   intrusiveThoughts: number;

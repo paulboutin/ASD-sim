@@ -28,6 +28,7 @@ export function SetupPage() {
   useEffect(() => {
     if (!loadedPreset) return;
     applyLevels(loadedPreset.levels);
+    setAudioMix('masterVolume', loadedPreset.audioMix.masterVolume);
     setAudioMix('promptVoice', loadedPreset.audioMix.promptVoice);
     setAudioMix('distortion', loadedPreset.audioMix.distortion);
     setAudioMix('intrusiveThoughts', loadedPreset.audioMix.intrusiveThoughts);

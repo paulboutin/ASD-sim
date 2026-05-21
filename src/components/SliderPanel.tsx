@@ -21,7 +21,7 @@ const CHANNEL_BY_KEY = Object.fromEntries(CHANNEL_CONFIG.map((channel) => [chann
   (typeof CHANNEL_CONFIG)[number]
 >;
 
-const INTERACTION_KEYS: ChannelKey[] = ['apraxia', 'stim', 'synesthesia'];
+const MOTOR_PLANNING_KEYS: ChannelKey[] = ['apraxia', 'stim'];
 
 export function SliderPanel({
   levels,
@@ -65,8 +65,8 @@ export function SliderPanel({
         <div>
           <h2>Simulation Settings</h2>
           <p className="panel-subtitle">
-            Channel levels shape the simulation itself. Audio and visual mix controls let you tune how each effect
-            presents inside that channel.
+            Overall audio and visual levels sit with their mixers. Motor planning and cross-sensory combo controls
+            shape the interaction behavior.
           </p>
         </div>
         <button type="button" className="ghost-button" onClick={onReset}>
@@ -78,74 +78,100 @@ export function SliderPanel({
         <section className="settings-group-card">
           <div className="settings-group-header">
             <div>
-              <h3>Interaction Channels</h3>
-              <p>Core movement and attention layers that affect how the tests behave.</p>
+              <h3>Motor Planning</h3>
+              <p>Intent, response registration, and involuntary movement layers that affect how the tests behave.</p>
             </div>
           </div>
-          <div className="slider-stack">{INTERACTION_KEYS.map(renderChannelRow)}</div>
+          <div className="slider-stack">{MOTOR_PLANNING_KEYS.map(renderChannelRow)}</div>
+        </section>
+
+        <section className="settings-group-card">
+          <div className="settings-group-header">
+            <div>
+              <h3>Cross-Sensory Combo</h3>
+              <p>Linked audio-visual interference that can trigger across movement and interaction events.</p>
+            </div>
+          </div>
+          <div className="slider-stack">{renderChannelRow('synesthesia')}</div>
         </section>
 
         <section className="settings-group-card settings-group-card-wide">
           <div className="settings-group-header">
             <div>
               <h3>Audio Settings</h3>
-              <p>Keep the audio distortions and their playback volumes together so they can be balanced quickly.</p>
+              <p>Use Hearing Distortions as the overall audio interference level, then balance playback volumes.</p>
             </div>
             <button type="button" className="ghost-button" onClick={onResetAudioMix}>
               Reset Audio Settings
             </button>
           </div>
 
-          <div className="settings-inline-grid">
-            <label className="slider-row">
-              <div className="slider-row-header">
-                <span>{CHANNEL_BY_KEY.hearing.label}</span>
-                <output>{levels.hearing}</output>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={CHANNEL_BY_KEY.hearing.max}
-                step={1}
-                value={levels.hearing}
-                onChange={(event) => onChange('hearing', Number(event.target.value))}
-              />
-              <small>{CHANNEL_BY_KEY.hearing.description}</small>
-            </label>
+          <label className="slider-row">
+            <div className="slider-row-header">
+              <span>Audio Master Volume</span>
+              <output>{audioMix.masterVolume}</output>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={audioMix.masterVolume}
+              onChange={(event) => onAudioMixChange('masterVolume', Number(event.target.value))}
+            />
+            <small>Scales all simulator audio while preserving the mix balances below.</small>
+          </label>
 
-            <label className="slider-row">
-              <div className="slider-row-header">
-                <span>Distraction Audio Volume</span>
-                <output>{audioMix.distortion}</output>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={audioMix.distortion}
-                onChange={(event) => onAudioMixChange('distortion', Number(event.target.value))}
-              />
-              <small>Controls buzzing, fluorescent hum, crackle, and cross-sensory interference tones.</small>
-            </label>
-          </div>
+          <label className="slider-row">
+            <div className="slider-row-header">
+              <span>Prompt Voice Volume</span>
+              <output>{audioMix.promptVoice}</output>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={audioMix.promptVoice}
+              onChange={(event) => onAudioMixChange('promptVoice', Number(event.target.value))}
+            />
+            <small>Controls the recorded prompt clips and retry cue.</small>
+          </label>
 
-          <div className="settings-inline-grid">
-            <label className="slider-row">
-              <div className="slider-row-header">
-                <span>Prompt Voice Volume</span>
-                <output>{audioMix.promptVoice}</output>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={audioMix.promptVoice}
-                onChange={(event) => onAudioMixChange('promptVoice', Number(event.target.value))}
-              />
-              <small>Controls the recorded prompt clips and retry cue.</small>
-            </label>
+          <div className="audio-settings-columns">
+            <div className="slider-stack">
+              <label className="slider-row">
+                <div className="slider-row-header">
+                  <span>{CHANNEL_BY_KEY.hearing.label}</span>
+                  <output>{levels.hearing}</output>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={CHANNEL_BY_KEY.hearing.max}
+                  step={1}
+                  value={levels.hearing}
+                  onChange={(event) => onChange('hearing', Number(event.target.value))}
+                />
+                <small>{CHANNEL_BY_KEY.hearing.description}</small>
+              </label>
+
+              <label className="slider-row">
+                <div className="slider-row-header">
+                  <span>Distraction Audio Volume</span>
+                  <output>{audioMix.distortion}</output>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={audioMix.distortion}
+                  onChange={(event) => onAudioMixChange('distortion', Number(event.target.value))}
+                />
+                <small>Controls buzzing, fluorescent hum, crackle, and cross-sensory interference tones.</small>
+              </label>
+            </div>
 
             <section className="content-toggle-card content-toggle-inline">
               <div className="content-toggle-header">
@@ -190,12 +216,28 @@ export function SliderPanel({
           <div className="settings-group-header">
             <div>
               <h3>Visual Settings</h3>
-              <p>Tune each visual distortion directly without a separate master visual slider.</p>
+              <p>Use Vision Distortions as the overall visual interference level, then tune the visual mix.</p>
             </div>
             <button type="button" className="ghost-button" onClick={onResetVisualMix}>
               Reset Visual Mix
             </button>
           </div>
+
+          <label className="slider-row">
+            <div className="slider-row-header">
+              <span>{CHANNEL_BY_KEY.vision.label}</span>
+              <output>{levels.vision}</output>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={CHANNEL_BY_KEY.vision.max}
+              step={1}
+              value={levels.vision}
+              onChange={(event) => onChange('vision', Number(event.target.value))}
+            />
+            <small>{CHANNEL_BY_KEY.vision.description}</small>
+          </label>
 
           <div className="visual-mix-grid">
             <label className="slider-row">
@@ -211,7 +253,7 @@ export function SliderPanel({
                 value={visualMix.blur}
                 onChange={(event) => onVisualMixChange('blur', Number(event.target.value))}
               />
-              <small>Controls softness and loss of visual sharpness.</small>
+              <small>Sets how much of the visual master becomes softness and loss of sharpness.</small>
             </label>
 
             <label className="slider-row">
@@ -227,7 +269,7 @@ export function SliderPanel({
                 value={visualMix.ghosting}
                 onChange={(event) => onVisualMixChange('ghosting', Number(event.target.value))}
               />
-              <small>Controls doubled edges and trailing image effects.</small>
+              <small>Sets how much of the visual master becomes a duplicated trailing image layer.</small>
             </label>
 
             <label className="slider-row">
@@ -243,7 +285,7 @@ export function SliderPanel({
                 value={visualMix.noise}
                 onChange={(event) => onVisualMixChange('noise', Number(event.target.value))}
               />
-              <small>Controls grain and noisy overlay interference.</small>
+              <small>Sets how much of the visual master becomes grain and floating lens particles.</small>
             </label>
 
             <label className="slider-row">
@@ -280,7 +322,7 @@ export function SliderPanel({
                 value={visualMix.flicker}
                 onChange={(event) => onVisualMixChange('flicker', Number(event.target.value))}
               />
-              <small>Controls unstable brightness flicker from fluorescent-light simulation.</small>
+              <small>Sets how much of the visual master becomes unstable fluorescent-light flicker.</small>
             </label>
           </div>
         </section>

@@ -1,5 +1,15 @@
 import html2canvas from 'html2canvas';
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import { getVisualProfile } from '../engines/visualEffectsEngine';
 import type { VisualMixLevels } from '../types/simulation';
 
@@ -22,6 +32,23 @@ interface WebGLRenderer {
   resolutionLocation: WebGLUniformLocation | null;
   angleLocation: WebGLUniformLocation | null;
   textureLocation: WebGLUniformLocation | null;
+}
+
+interface NoiseParticle {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
+  blur: number;
+  duration: number;
+  delay: number;
+  driftX: number;
+  driftY: number;
+  rotation: number;
+  background: string;
+  borderRadius: string;
 }
 
 const VERTEX_SHADER_SOURCE = `
@@ -79,6 +106,67 @@ const FRAGMENT_SHADER_SOURCE = `
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function randomBetween(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+function createNoiseParticles(count = 78): NoiseParticle[] {
+  return Array.from({ length: count }, (_, index) => {
+    const particleType = Math.random();
+    const isFiber = particleType > 0.86;
+    const isSmudge = particleType > 0.66 && !isFiber;
+    const isDark = Math.random() > 0.64;
+    const width = isFiber ? randomBetween(18, 58) : isSmudge ? randomBetween(10, 36) : randomBetween(2, 10);
+    const height = isFiber ? randomBetween(1.2, 4.5) : isSmudge ? randomBetween(6, 24) : randomBetween(2, 10);
+    const lightBackground =
+      'radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(204, 228, 236, 0.42) 58%, transparent 76%)';
+    const darkBackground =
+      'radial-gradient(circle, rgba(34, 45, 48, 0.46), rgba(75, 92, 94, 0.2) 54%, transparent 78%)';
+    const fiberBackground = isDark
+      ? 'linear-gradient(90deg, transparent, rgba(34, 45, 48, 0.42), transparent)'
+      : 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent)';
+
+    return {
+      id: index,
+      x: randomBetween(-4, 104),
+      y: randomBetween(-4, 104),
+      width,
+      height,
+      opacity: isFiber ? randomBetween(0.2, 0.48) : isSmudge ? randomBetween(0.18, 0.52) : randomBetween(0.24, 0.72),
+      blur: isFiber ? randomBetween(0.6, 2.4) : isSmudge ? randomBetween(2.2, 7.5) : randomBetween(0.2, 2.8),
+      duration: randomBetween(5.5, 13),
+      delay: randomBetween(-9, 0),
+      driftX: randomBetween(-18, 18),
+      driftY: randomBetween(-14, 20),
+      rotation: randomBetween(-50, 50),
+      background: isFiber ? fiberBackground : isDark ? darkBackground : lightBackground,
+      borderRadius: isFiber ? '999px' : `${randomBetween(42, 999).toFixed(0)}px`,
+    };
+  });
+}
+
+function getNoiseParticleStyle(particle: NoiseParticle): CSSProperties & {
+  '--noise-drift-x': string;
+  '--noise-drift-y': string;
+  '--noise-rotate': string;
+} {
+  return {
+    '--noise-drift-x': `${particle.driftX.toFixed(1)}px`,
+    '--noise-drift-y': `${particle.driftY.toFixed(1)}px`,
+    '--noise-rotate': `${particle.rotation.toFixed(1)}deg`,
+    left: `${particle.x.toFixed(2)}%`,
+    top: `${particle.y.toFixed(2)}%`,
+    width: `${particle.width.toFixed(1)}px`,
+    height: `${particle.height.toFixed(1)}px`,
+    opacity: particle.opacity,
+    filter: `blur(${particle.blur.toFixed(1)}px)`,
+    animationDuration: `${particle.duration.toFixed(2)}s`,
+    animationDelay: `${particle.delay.toFixed(2)}s`,
+    background: particle.background,
+    borderRadius: particle.borderRadius,
+  };
 }
 
 function createShader(
@@ -237,16 +325,41 @@ function mapOutputPointToSource(
   };
 }
 
+function sanitizeGhostClone(clone: HTMLElement): HTMLElement {
+  clone.classList.remove('visual-source-hidden');
+  clone.setAttribute('aria-hidden', 'true');
+
+  clone.querySelectorAll<HTMLElement>('.visual-source-hidden').forEach((element) => {
+    element.classList.remove('visual-source-hidden');
+  });
+  clone.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
+    element.removeAttribute('id');
+  });
+  clone
+    .querySelectorAll<HTMLElement>('a, button, input, select, textarea, [tabindex], [role="button"]')
+    .forEach((element) => {
+      element.setAttribute('tabindex', '-1');
+      element.setAttribute('aria-hidden', 'true');
+    });
+
+  return clone;
+}
+
 export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, children }: VisualEffectsLayerProps) {
   const profile = getVisualProfile(vision, synesthesia, tick, visualMix);
   const sourceRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ghostLayerRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const captureTimerRef = useRef<number | null>(null);
+  const ghostTimerRef = useRef<number | null>(null);
   const captureInFlightRef = useRef(false);
   const pendingCaptureRef = useRef(false);
   const [rendererReady, setRendererReady] = useState(false);
+  const [ghostOffset, setGhostOffset] = useState({ x: 0, y: 0 });
+  const noiseParticles = useMemo(() => createNoiseParticles(), []);
   const fisheyeActive = Math.abs(profile.fisheyeAngle) > 0.001;
+  const ghostActive = profile.ghostOpacity > 0.001;
 
   const resizeCanvas = useCallback((): void => {
     const source = sourceRef.current;
@@ -326,6 +439,38 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
     [captureFrame, fisheyeActive],
   );
 
+  const refreshGhostLayer = useCallback((): void => {
+    const source = sourceRef.current;
+    const ghostLayer = ghostLayerRef.current;
+    if (!ghostLayer) return;
+
+    if (!ghostActive || !source) {
+      ghostLayer.replaceChildren();
+      return;
+    }
+
+    const clone = source.cloneNode(true);
+    if (clone instanceof HTMLElement) {
+      ghostLayer.replaceChildren(sanitizeGhostClone(clone));
+    }
+  }, [ghostActive]);
+
+  const scheduleGhostRefresh = useCallback(
+    (delay = 45): void => {
+      if (!ghostActive) return;
+
+      if (ghostTimerRef.current !== null) {
+        window.clearTimeout(ghostTimerRef.current);
+      }
+
+      ghostTimerRef.current = window.setTimeout(() => {
+        ghostTimerRef.current = null;
+        refreshGhostLayer();
+      }, delay);
+    },
+    [ghostActive, refreshGhostLayer],
+  );
+
   useEffect(() => {
     if (!fisheyeActive || !canvasRef.current) {
       setRendererReady(false);
@@ -389,9 +534,36 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
   }, [fisheyeActive, profile.fisheyeAngle, scheduleCapture]);
 
   useEffect(() => {
+    if (!ghostActive || !sourceRef.current) {
+      refreshGhostLayer();
+      return;
+    }
+
+    const source = sourceRef.current;
+    scheduleGhostRefresh(0);
+
+    const mutationObserver = new MutationObserver(() => {
+      scheduleGhostRefresh(45);
+    });
+    mutationObserver.observe(source, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      mutationObserver.disconnect();
+    };
+  }, [ghostActive, refreshGhostLayer, scheduleGhostRefresh]);
+
+  useEffect(() => {
     return () => {
       if (captureTimerRef.current !== null) {
         window.clearTimeout(captureTimerRef.current);
+      }
+      if (ghostTimerRef.current !== null) {
+        window.clearTimeout(ghostTimerRef.current);
       }
     };
   }, []);
@@ -440,8 +612,47 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
     [profile.fisheyeAngle, scheduleCapture],
   );
 
+  const getGhostBaseOffset = useCallback((): { x: number; y: number } => {
+    const strength = clamp(profile.ghostOpacity / 0.42, 0, 1);
+    return {
+      x: 5 + strength * 12,
+      y: 3 + strength * 8,
+    };
+  }, [profile.ghostOpacity]);
+
+  const handleGhostPointerMove = useCallback(
+    (event: PointerEvent<HTMLDivElement>): void => {
+      if (!ghostActive) return;
+
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const strength = clamp(profile.ghostOpacity / 0.42, 0, 1);
+      const relativeX = clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1), 0, 1) * 2 - 1;
+      const relativeY = clamp((event.clientY - bounds.top) / Math.max(bounds.height, 1), 0, 1) * 2 - 1;
+      const base = getGhostBaseOffset();
+
+      setGhostOffset({
+        x: base.x + relativeX * (6 + strength * 14),
+        y: base.y + relativeY * (5 + strength * 12),
+      });
+    },
+    [getGhostBaseOffset, ghostActive, profile.ghostOpacity],
+  );
+
+  const handleGhostPointerLeave = useCallback((): void => {
+    setGhostOffset(getGhostBaseOffset());
+  }, [getGhostBaseOffset]);
+
+  useEffect(() => {
+    setGhostOffset(ghostActive ? getGhostBaseOffset() : { x: 0, y: 0 });
+  }, [getGhostBaseOffset, ghostActive]);
+
   return (
-    <div className="visual-shell" style={profile.shellStyle}>
+    <div
+      className="visual-shell"
+      style={profile.shellStyle}
+      onPointerMove={handleGhostPointerMove}
+      onPointerLeave={handleGhostPointerLeave}
+    >
       <div className="visual-stage" style={profile.stageStyle}>
         <div
           ref={sourceRef}
@@ -460,10 +671,32 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
             onClick={handleWarpClick}
           />
         ) : null}
-        <div className="visual-noise" style={{ opacity: profile.noiseOpacity }} />
-        <div className="visual-ghost" style={{ opacity: profile.ghostOpacity }} />
-        <div className="visual-shimmer" style={{ opacity: profile.shimmerOpacity }} />
-        <div className="visual-fluorescent" style={{ opacity: profile.fluorescentOpacity }} />
+        <div
+          ref={ghostLayerRef}
+          className="visual-ghost-content"
+          style={{
+            ...profile.ghostStyle,
+            transform: `translate(${ghostOffset.x.toFixed(1)}px, ${ghostOffset.y.toFixed(1)}px)`,
+          }}
+          aria-hidden="true"
+        />
+        {profile.noiseOpacity > 0.001 ? (
+          <div className="visual-noise" style={{ opacity: profile.noiseOpacity }}>
+            {noiseParticles.map((particle) => (
+              <span
+                key={particle.id}
+                className="visual-noise-particle"
+                style={getNoiseParticleStyle(particle)}
+              />
+            ))}
+          </div>
+        ) : null}
+        {profile.shimmerOpacity > 0.001 ? (
+          <div className="visual-shimmer" style={{ opacity: profile.shimmerOpacity }} />
+        ) : null}
+        {profile.fluorescentOpacity > 0.001 ? (
+          <div className="visual-fluorescent" style={{ opacity: profile.fluorescentOpacity }} />
+        ) : null}
       </div>
     </div>
   );

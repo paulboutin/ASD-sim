@@ -74,8 +74,8 @@ export function TimedFocusTest({ channels, paused, audioEnabled, promptVoiceVolu
   }, [awaitingResponse, channels.apraxia, channels.hearing, channels.stim, currentPrompt.id, onEvent, paused]);
 
   const interruptionOpacity = useMemo(
-    () => getInterruptionOpacity(channels.stim + channels.synesthesia * 0.25, tick),
-    [channels.stim, channels.synesthesia, tick],
+    () => getInterruptionOpacity(channels.stim, tick),
+    [channels.stim, tick],
   );
 
   const handleResponse = (response: string, index: number): void => {

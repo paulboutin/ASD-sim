@@ -18,6 +18,7 @@ interface VisualEffectsLayerProps {
   synesthesia: number;
   visualMix: VisualMixLevels;
   tick: number;
+  onCrossSensoryProximityChange?: (proximity: number) => void;
   children: ReactNode;
 }
 
@@ -31,6 +32,7 @@ interface WebGLRenderer {
   positionLocation: number;
   resolutionLocation: WebGLUniformLocation | null;
   angleLocation: WebGLUniformLocation | null;
+  centerLocation: WebGLUniformLocation | null;
   textureLocation: WebGLUniformLocation | null;
 }
 
@@ -74,18 +76,21 @@ const FRAGMENT_SHADER_SOURCE = `
 
   uniform vec2 u_resolution;
   uniform float u_angle;
+  uniform vec2 u_center;
   uniform sampler2D u_texture;
 
   void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution;
     vec2 ndcPos = uv * 2.0 - 1.0;
+    vec2 ndcCenter = u_center * 2.0 - 1.0;
+    vec2 offset = ndcPos - ndcCenter;
     float aspect = u_resolution.x / max(u_resolution.y, 1.0);
     vec2 viewportScale = vec2(aspect, 1.0);
     float viewportDiameter = length(viewportScale);
-    vec2 scaled = ndcPos * viewportScale;
+    vec2 scaled = offset * viewportScale;
     float relativeDistance = length(scaled) / max(viewportDiameter, 0.0001);
 
-    vec2 projected = ndcPos;
+    vec2 projectedOffset = offset;
 
     if (abs(u_angle) > 0.001 && relativeDistance > 0.0001) {
       float halfAngle = abs(u_angle) * 0.5;
@@ -99,9 +104,10 @@ const FRAGMENT_SHADER_SOURCE = `
         factor = beta / max(relativeDistance * halfAngle, 0.0001);
       }
 
-      projected = ndcPos * factor;
+      projectedOffset = offset * factor;
     }
 
+    vec2 projected = ndcCenter + projectedOffset;
     vec2 projectedUv = projected * 0.5 + 0.5;
 
     if (projectedUv.x < 0.0 || projectedUv.x > 1.0 || projectedUv.y < 0.0 || projectedUv.y > 1.0) {
@@ -291,6 +297,7 @@ function createRenderer(canvas: HTMLCanvasElement): WebGLRenderer | null {
   const positionLocation = context.getAttribLocation(program, 'inPos');
   const resolutionLocation = context.getUniformLocation(program, 'u_resolution');
   const angleLocation = context.getUniformLocation(program, 'u_angle');
+  const centerLocation = context.getUniformLocation(program, 'u_center');
   const textureLocation = context.getUniformLocation(program, 'u_texture');
 
   context.useProgram(program);
@@ -310,17 +317,23 @@ function createRenderer(canvas: HTMLCanvasElement): WebGLRenderer | null {
     positionLocation,
     resolutionLocation,
     angleLocation,
+    centerLocation,
     textureLocation,
   };
 }
 
-function drawRenderer(renderer: WebGLRenderer, fisheyeAngle: number): void {
-  const { context, canvas, program, resolutionLocation, angleLocation, textureLocation } = renderer;
+function drawRenderer(
+  renderer: WebGLRenderer,
+  fisheyeAngle: number,
+  lensCenter: { x: number; y: number },
+): void {
+  const { context, canvas, program, resolutionLocation, angleLocation, centerLocation, textureLocation } = renderer;
   context.viewport(0, 0, canvas.width, canvas.height);
   context.clear(context.COLOR_BUFFER_BIT);
   context.useProgram(program);
   context.uniform2f(resolutionLocation, canvas.width, canvas.height);
   context.uniform1f(angleLocation, fisheyeAngle);
+  context.uniform2f(centerLocation, lensCenter.x, lensCenter.y);
   context.uniform1i(textureLocation, 0);
   context.drawElements(context.TRIANGLES, 6, context.UNSIGNED_SHORT, 0);
 }
@@ -338,6 +351,7 @@ function mapOutputPointToSource(
   clientY: number,
   bounds: DOMRect,
   fisheyeAngle: number,
+  lensCenter: { x: number; y: number },
 ): { x: number; y: number } {
   const width = Math.max(bounds.width, 1);
   const height = Math.max(bounds.height, 1);
@@ -345,10 +359,14 @@ function mapOutputPointToSource(
   const uvY = clamp((clientY - bounds.top) / height, 0, 1);
   const ndcX = uvX * 2 - 1;
   const ndcY = uvY * 2 - 1;
+  const centerX = lensCenter.x * 2 - 1;
+  const centerY = lensCenter.y * 2 - 1;
+  const offsetX = ndcX - centerX;
+  const offsetY = ndcY - centerY;
 
   const aspect = width / height;
   const viewportLength = Math.hypot(aspect, 1);
-  const relativeDistance = Math.hypot(ndcX * aspect, ndcY) / Math.max(viewportLength, 0.0001);
+  const relativeDistance = Math.hypot(offsetX * aspect, offsetY) / Math.max(viewportLength, 0.0001);
 
   let factor = 1;
   if (Math.abs(fisheyeAngle) > 0.001 && relativeDistance > 0.0001) {
@@ -362,8 +380,8 @@ function mapOutputPointToSource(
     }
   }
 
-  const projectedX = clamp((ndcX * factor + 1) * 0.5, 0, 1);
-  const projectedY = clamp((ndcY * factor + 1) * 0.5, 0, 1);
+  const projectedX = clamp((centerX + offsetX * factor + 1) * 0.5, 0, 1);
+  const projectedY = clamp((centerY + offsetY * factor + 1) * 0.5, 0, 1);
 
   return {
     x: bounds.left + projectedX * width,
@@ -391,7 +409,14 @@ function sanitizeGhostClone(clone: HTMLElement): HTMLElement {
   return clone;
 }
 
-export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, children }: VisualEffectsLayerProps) {
+export function VisualEffectsLayer({
+  vision,
+  synesthesia,
+  visualMix,
+  tick,
+  onCrossSensoryProximityChange,
+  children,
+}: VisualEffectsLayerProps) {
   const [pointerSensory, setPointerSensory] = useState<PointerSensoryState>({ x: 50, y: 50, proximity: 0 });
   const profile = getVisualProfile(vision, synesthesia, tick, visualMix, pointerSensory.proximity);
   const sourceRef = useRef<HTMLDivElement | null>(null);
@@ -410,6 +435,17 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
     Math.max(0, Math.min(1, vision / 100)) *
     getVisualDistractionLevel(visualMix) *
     (0.25 + pointerSensory.proximity * 0.75);
+  const lensFollow =
+    Math.max(0, Math.min(1, synesthesia / 100)) *
+    Math.max(0, Math.min(1, Math.abs(visualMix.convex) / 100));
+  const lensCenter = useMemo(
+    () => ({
+      x: 0.5 + (pointerSensory.x / 100 - 0.5) * lensFollow,
+      y: 0.5 + (pointerSensory.y / 100 - 0.5) * lensFollow,
+    }),
+    [lensFollow, pointerSensory.x, pointerSensory.y],
+  );
+  const lensCenterRef = useRef(lensCenter);
   const fisheyeActive = Math.abs(profile.fisheyeAngle) > 0.001;
   const ghostActive = profile.ghostOpacity > 0.001;
 
@@ -459,7 +495,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
       if (!rendererRef.current) return;
 
       uploadTexture(rendererRef.current, snapshot);
-      drawRenderer(rendererRef.current, profile.fisheyeAngle);
+      drawRenderer(rendererRef.current, profile.fisheyeAngle, lensCenterRef.current);
       setRendererReady(true);
     } catch (error) {
       console.error('Failed to render fisheye surface.', error);
@@ -586,6 +622,17 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
   }, [fisheyeActive, profile.fisheyeAngle, scheduleCapture]);
 
   useEffect(() => {
+    if (!fisheyeActive) return;
+    scheduleCapture(0);
+  }, [fisheyeActive, scheduleCapture, tick]);
+
+  useEffect(() => {
+    lensCenterRef.current = lensCenter;
+    if (!fisheyeActive || !rendererReady || !rendererRef.current) return;
+    drawRenderer(rendererRef.current, profile.fisheyeAngle, lensCenter);
+  }, [fisheyeActive, lensCenter, profile.fisheyeAngle, rendererReady]);
+
+  useEffect(() => {
     if (!ghostActive || !sourceRef.current) {
       refreshGhostLayer();
       return;
@@ -630,6 +677,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
         event.clientY,
         canvas.getBoundingClientRect(),
         profile.fisheyeAngle,
+        lensCenterRef.current,
       );
 
       canvas.style.pointerEvents = 'none';
@@ -683,6 +731,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
         y: pointerY * 100,
         proximity,
       });
+      onCrossSensoryProximityChange?.(proximity);
 
       if (!ghostActive) return;
 
@@ -697,13 +746,14 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
         y: base.y + relativeY * (strength * 7 + crossSensoryFollow * 26),
       });
     },
-    [cursorAttraction, getGhostBaseOffset, ghostActive, profile.ghostOpacity],
+    [cursorAttraction, getGhostBaseOffset, ghostActive, onCrossSensoryProximityChange, profile.ghostOpacity],
   );
 
   const handleGhostPointerLeave = useCallback((): void => {
     setPointerSensory((current) => ({ ...current, proximity: 0 }));
+    onCrossSensoryProximityChange?.(0);
     setGhostOffset(getGhostBaseOffset());
-  }, [getGhostBaseOffset]);
+  }, [getGhostBaseOffset, onCrossSensoryProximityChange]);
 
   useEffect(() => {
     setGhostOffset(ghostActive ? getGhostBaseOffset() : { x: 0, y: 0 });
@@ -722,7 +772,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
           className={`visual-source ${fisheyeActive && rendererReady ? 'visual-source-hidden' : ''}`}
           data-visual-source="true"
         >
-          <div className="visual-content" style={profile.contentStyle}>
+          <div className="visual-content" style={fisheyeActive ? undefined : profile.contentStyle}>
             {children}
           </div>
         </div>
@@ -730,6 +780,7 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
           <canvas
             ref={canvasRef}
             className={`visual-webgl-surface ${rendererReady ? '' : 'visual-webgl-surface-hidden'}`}
+            style={profile.contentStyle}
             aria-hidden="true"
             onClick={handleWarpClick}
           />

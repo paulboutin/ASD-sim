@@ -82,6 +82,7 @@ export function SimulationPage() {
   const [tick, setTick] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [crossSensoryProximity, setCrossSensoryProximity] = useState(0);
 
   const test = useMemo(() => getTestById(selectedTest), [selectedTest]);
   const sessionKey = `${selectedTest}-${restartNonce}`;
@@ -127,6 +128,7 @@ export function SimulationPage() {
     paused,
     hearingLevel: channels.hearing,
     synesthesiaLevel: channels.synesthesia,
+    crossSensoryProximity,
     intrusiveThoughtsEnabled,
     masterVolume: audioMix.masterVolume,
     distortionVolume: audioMix.distortion,
@@ -272,6 +274,7 @@ export function SimulationPage() {
             synesthesia={channels.synesthesia}
             visualMix={visualMix}
             tick={tick}
+            onCrossSensoryProximityChange={setCrossSensoryProximity}
           >
             <TestComponent
               key={sessionKey}

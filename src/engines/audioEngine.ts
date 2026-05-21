@@ -6,6 +6,7 @@ interface AudioControls {
   paused: boolean;
   hearingLevel: number;
   synesthesiaLevel: number;
+  crossSensoryProximity: number;
   intrusiveThoughtsEnabled: boolean;
   masterVolume: number;
   distortionVolume: number;
@@ -155,6 +156,7 @@ export function useAudioEngine({
   paused,
   hearingLevel,
   synesthesiaLevel,
+  crossSensoryProximity,
   intrusiveThoughtsEnabled,
   masterVolume,
   distortionVolume,
@@ -166,6 +168,9 @@ export function useAudioEngine({
   const masterMix = Math.max(0, Math.min(1, masterVolume / 100));
   const distortionMix = Math.max(0, Math.min(1, distortionVolume / 100));
   const intrusiveMix = Math.max(0, Math.min(1, intrusiveThoughtsVolume / 100));
+  const crossSensoryMix = Math.max(0, Math.min(1, synesthesiaLevel / 100));
+  const proximityMix = Math.max(0, Math.min(1, crossSensoryProximity));
+  const cursorAudioMix = crossSensoryMix * proximityMix * distortionMix;
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined' || nodesRef.current) return;
@@ -203,57 +208,87 @@ export function useAudioEngine({
     const active = enabled && !muted && !paused;
     const hearingMix = hearingLevel / 100;
     const mixedHearing = hearingMix * distortionMix;
+    const cursorTone = cursorAudioMix * 0.045;
+    const cursorNoise = cursorAudioMix * 0.06;
+    const cursorBuzz = cursorAudioMix * 0.014;
+    const cursorCrackle = cursorAudioMix * 0.008;
 
     nodes.masterGain.gain.setTargetAtTime(active ? 0.95 * masterMix : 0, nodes.context.currentTime, 0.06);
-    nodes.buzzGain.gain.setTargetAtTime(active ? mixedHearing * 0.09 : 0, nodes.context.currentTime, 0.08);
-    nodes.fluorescentGain.gain.setTargetAtTime(active ? mixedHearing * 0.024 : 0, nodes.context.currentTime, 0.05);
-    nodes.toneGain.gain.setTargetAtTime(active ? mixedHearing * 0.075 : 0, nodes.context.currentTime, 0.08);
-    nodes.noiseGain.gain.setTargetAtTime(active ? mixedHearing * 0.11 : 0, nodes.context.currentTime, 0.08);
-    nodes.crackleGain.gain.setTargetAtTime(active ? mixedHearing * 0.01 : 0, nodes.context.currentTime, 0.04);
+    nodes.buzzGain.gain.setTargetAtTime(active ? mixedHearing * 0.09 + cursorBuzz : 0, nodes.context.currentTime, 0.08);
+    nodes.fluorescentGain.gain.setTargetAtTime(
+      active ? mixedHearing * 0.024 + cursorBuzz : 0,
+      nodes.context.currentTime,
+      0.05,
+    );
+    nodes.toneGain.gain.setTargetAtTime(active ? mixedHearing * 0.075 + cursorTone : 0, nodes.context.currentTime, 0.08);
+    nodes.noiseGain.gain.setTargetAtTime(active ? mixedHearing * 0.11 + cursorNoise : 0, nodes.context.currentTime, 0.08);
+    nodes.crackleGain.gain.setTargetAtTime(
+      active ? mixedHearing * 0.01 + cursorCrackle : 0,
+      nodes.context.currentTime,
+      0.04,
+    );
 
-    nodes.fluorescentOsc.frequency.setTargetAtTime(112 + hearingLevel * 0.22, nodes.context.currentTime, 0.08);
-    nodes.toneOsc.frequency.setTargetAtTime(150 + hearingLevel * 2.8, nodes.context.currentTime, 0.1);
-    nodes.noiseFilter.frequency.setTargetAtTime(160 + hearingLevel * 6.4, nodes.context.currentTime, 0.1);
-    nodes.crackleFilter.frequency.setTargetAtTime(1800 + hearingLevel * 16, nodes.context.currentTime, 0.08);
+    nodes.fluorescentOsc.frequency.setTargetAtTime(
+      112 + hearingLevel * 0.22 + cursorAudioMix * 70,
+      nodes.context.currentTime,
+      0.08,
+    );
+    nodes.toneOsc.frequency.setTargetAtTime(
+      150 + hearingLevel * 2.8 + cursorAudioMix * 260,
+      nodes.context.currentTime,
+      0.1,
+    );
+    nodes.noiseFilter.frequency.setTargetAtTime(
+      160 + hearingLevel * 6.4 + cursorAudioMix * 1800,
+      nodes.context.currentTime,
+      0.1,
+    );
+    nodes.crackleFilter.frequency.setTargetAtTime(
+      1800 + hearingLevel * 16 + cursorAudioMix * 1200,
+      nodes.context.currentTime,
+      0.08,
+    );
 
-    if (!active || hearingLevel < 8 || distortionMix <= 0) {
-      if (modulationRef.current) {
-        window.clearInterval(modulationRef.current);
-        modulationRef.current = null;
-      }
+    if (modulationRef.current) {
+      window.clearInterval(modulationRef.current);
+      modulationRef.current = null;
+    }
+
+    if (!active || ((hearingLevel < 8 || distortionMix <= 0) && cursorAudioMix <= 0.01)) {
       return;
     }
 
-    if (!modulationRef.current) {
-      modulationRef.current = window.setInterval(() => {
-        const currentNodes = nodesRef.current;
-        if (!currentNodes) return;
-        const currentTime = currentNodes.context.currentTime;
-        const jitter = hearingLevel * 0.9 + Math.random() * hearingLevel * 0.7;
+    modulationRef.current = window.setInterval(() => {
+      const currentNodes = nodesRef.current;
+      if (!currentNodes) return;
+      const currentTime = currentNodes.context.currentTime;
+      const jitter = hearingLevel * 0.9 + Math.random() * hearingLevel * 0.7 + cursorAudioMix * 80;
 
-        currentNodes.toneOsc.frequency.setTargetAtTime(130 + jitter * 3.4, currentTime, 0.07);
-        currentNodes.buzzOsc.frequency.setTargetAtTime(68 + jitter * 1.8, currentTime, 0.07);
-        currentNodes.fluorescentOsc.frequency.setTargetAtTime(105 + jitter * 0.45, currentTime, 0.06);
-        currentNodes.noiseGain.gain.setTargetAtTime(
-          Math.max(0.01 * distortionMix, hearingLevel / 700 + Math.random() * (hearingLevel / 800)) * distortionMix,
-          currentTime,
-          0.09,
-        );
-        currentNodes.fluorescentGain.gain.setTargetAtTime(
-          Math.max(0.004 * distortionMix, hearingLevel / 2400 + (Math.random() > 0.62 ? hearingLevel / 880 : 0)) *
-            distortionMix,
-          currentTime,
-          0.04,
-        );
-        currentNodes.crackleGain.gain.setTargetAtTime(
-          Math.max(0.002 * distortionMix, hearingLevel / 3200 + (Math.random() > 0.72 ? hearingLevel / 1050 : 0)) *
-            distortionMix,
-          currentTime,
-          0.03,
-        );
-      }, 290);
-    }
-  }, [distortionMix, enabled, masterMix, muted, paused, hearingLevel]);
+      currentNodes.toneOsc.frequency.setTargetAtTime(130 + jitter * 3.4, currentTime, 0.07);
+      currentNodes.buzzOsc.frequency.setTargetAtTime(68 + jitter * 1.8, currentTime, 0.07);
+      currentNodes.fluorescentOsc.frequency.setTargetAtTime(105 + jitter * 0.45, currentTime, 0.06);
+      currentNodes.noiseGain.gain.setTargetAtTime(
+        Math.max(0.01 * distortionMix, hearingLevel / 700 + Math.random() * (hearingLevel / 800)) * distortionMix +
+          cursorNoise,
+        currentTime,
+        0.09,
+      );
+      currentNodes.fluorescentGain.gain.setTargetAtTime(
+        Math.max(0.004 * distortionMix, hearingLevel / 2400 + (Math.random() > 0.62 ? hearingLevel / 880 : 0)) *
+          distortionMix +
+          cursorBuzz,
+        currentTime,
+        0.04,
+      );
+      currentNodes.crackleGain.gain.setTargetAtTime(
+        Math.max(0.002 * distortionMix, hearingLevel / 3200 + (Math.random() > 0.72 ? hearingLevel / 1050 : 0)) *
+          distortionMix +
+          cursorCrackle,
+        currentTime,
+        0.03,
+      );
+    }, 290);
+  }, [cursorAudioMix, distortionMix, enabled, masterMix, muted, paused, hearingLevel]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;

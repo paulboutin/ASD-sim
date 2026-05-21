@@ -69,9 +69,6 @@ export function SliderPanel({
             shape the interaction behavior.
           </p>
         </div>
-        <button type="button" className="ghost-button" onClick={onReset}>
-          Reset Channel Levels
-        </button>
       </div>
 
       <div className="settings-group-grid">
@@ -81,6 +78,9 @@ export function SliderPanel({
               <h3>Motor Planning</h3>
               <p>Intent, response registration, and involuntary movement layers that affect how the tests behave.</p>
             </div>
+            <button type="button" className="ghost-button" onClick={onReset}>
+              Reset Channel Levels
+            </button>
           </div>
           <div className="slider-stack">{MOTOR_PLANNING_KEYS.map(renderChannelRow)}</div>
         </section>

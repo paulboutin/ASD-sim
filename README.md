@@ -4,6 +4,12 @@ ASD-sim is a public, advocacy-forward awareness simulator for education and know
 
 It is designed to help people discuss how communication and sensory-motor interference can affect autistic non-speakers and others with similar experiences. It is a perspective-building approximation inspired by reported lived experiences, not an exact reproduction of any one person.
 
+## Live Preview
+
+Live site: [paulboutin.github.io/ASD-sim](https://paulboutin.github.io/ASD-sim/)
+
+![ASD-sim simulator preview](public/simulator-preview.jpg)
+
 ## Framing and Boundaries
 
 - Educational and advocacy-oriented.

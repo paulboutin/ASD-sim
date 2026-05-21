@@ -47,8 +47,16 @@ interface NoiseParticle {
   driftX: number;
   driftY: number;
   rotation: number;
+  cursorOffsetX: number;
+  cursorOffsetY: number;
   background: string;
   borderRadius: string;
+}
+
+interface PointerSensoryState {
+  x: number;
+  y: number;
+  proximity: number;
 }
 
 const VERTEX_SHADER_SOURCE = `
@@ -108,6 +116,26 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function getTargetProximity(source: HTMLElement, clientX: number, clientY: number): number {
+  const targets = Array.from(source.querySelectorAll<HTMLElement>('button, [role="button"]'));
+  if (!targets.length) return 0;
+
+  const nearestDistance = targets.reduce((nearest, target) => {
+    const bounds = target.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return nearest;
+
+    const nearestX = clamp(clientX, bounds.left, bounds.right);
+    const nearestY = clamp(clientY, bounds.top, bounds.bottom);
+    const distance = Math.hypot(clientX - nearestX, clientY - nearestY);
+    return Math.min(nearest, distance);
+  }, Number.POSITIVE_INFINITY);
+
+  if (!Number.isFinite(nearestDistance)) return 0;
+
+  const proximityRadius = 150;
+  return clamp(1 - nearestDistance / proximityRadius, 0, 1);
+}
+
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
@@ -141,28 +169,46 @@ function createNoiseParticles(count = 78): NoiseParticle[] {
       driftX: randomBetween(-18, 18),
       driftY: randomBetween(-14, 20),
       rotation: randomBetween(-50, 50),
+      cursorOffsetX: randomBetween(-11, 11),
+      cursorOffsetY: randomBetween(-9, 9),
       background: isFiber ? fiberBackground : isDark ? darkBackground : lightBackground,
       borderRadius: isFiber ? '999px' : `${randomBetween(42, 999).toFixed(0)}px`,
     };
   });
 }
 
-function getNoiseParticleStyle(particle: NoiseParticle): CSSProperties & {
+function getVisualDistractionLevel(visualMix: VisualMixLevels): number {
+  return Math.max(visualMix.blur, visualMix.ghosting, visualMix.noise, visualMix.flicker) / 100;
+}
+
+function getNoiseParticleStyle(
+  particle: NoiseParticle,
+  pointerSensory: PointerSensoryState,
+  cursorAttraction: number,
+): CSSProperties & {
   '--noise-drift-x': string;
   '--noise-drift-y': string;
   '--noise-rotate': string;
 } {
+  const attraction = clamp(cursorAttraction, 0, 1);
+  const targetX = pointerSensory.x + particle.cursorOffsetX * (1 - attraction * 0.35);
+  const targetY = pointerSensory.y + particle.cursorOffsetY * (1 - attraction * 0.35);
+  const positionX = particle.x + (targetX - particle.x) * attraction;
+  const positionY = particle.y + (targetY - particle.y) * attraction;
+  const driftScale = 1 + attraction * 1.8;
+  const opacityScale = 1 + attraction * 0.72;
+
   return {
-    '--noise-drift-x': `${particle.driftX.toFixed(1)}px`,
-    '--noise-drift-y': `${particle.driftY.toFixed(1)}px`,
+    '--noise-drift-x': `${(particle.driftX * driftScale).toFixed(1)}px`,
+    '--noise-drift-y': `${(particle.driftY * driftScale).toFixed(1)}px`,
     '--noise-rotate': `${particle.rotation.toFixed(1)}deg`,
-    left: `${particle.x.toFixed(2)}%`,
-    top: `${particle.y.toFixed(2)}%`,
+    left: `${positionX.toFixed(2)}%`,
+    top: `${positionY.toFixed(2)}%`,
     width: `${particle.width.toFixed(1)}px`,
     height: `${particle.height.toFixed(1)}px`,
-    opacity: particle.opacity,
+    opacity: Math.min(0.95, particle.opacity * opacityScale),
     filter: `blur(${particle.blur.toFixed(1)}px)`,
-    animationDuration: `${particle.duration.toFixed(2)}s`,
+    animationDuration: `${(particle.duration / (1 + attraction * 1.7)).toFixed(2)}s`,
     animationDelay: `${particle.delay.toFixed(2)}s`,
     background: particle.background,
     borderRadius: particle.borderRadius,
@@ -346,7 +392,8 @@ function sanitizeGhostClone(clone: HTMLElement): HTMLElement {
 }
 
 export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, children }: VisualEffectsLayerProps) {
-  const profile = getVisualProfile(vision, synesthesia, tick, visualMix);
+  const [pointerSensory, setPointerSensory] = useState<PointerSensoryState>({ x: 50, y: 50, proximity: 0 });
+  const profile = getVisualProfile(vision, synesthesia, tick, visualMix, pointerSensory.proximity);
   const sourceRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ghostLayerRef = useRef<HTMLDivElement | null>(null);
@@ -358,6 +405,11 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
   const [rendererReady, setRendererReady] = useState(false);
   const [ghostOffset, setGhostOffset] = useState({ x: 0, y: 0 });
   const noiseParticles = useMemo(() => createNoiseParticles(), []);
+  const cursorAttraction =
+    Math.max(0, Math.min(1, synesthesia / 100)) *
+    Math.max(0, Math.min(1, vision / 100)) *
+    getVisualDistractionLevel(visualMix) *
+    (0.25 + pointerSensory.proximity * 0.75);
   const fisheyeActive = Math.abs(profile.fisheyeAngle) > 0.001;
   const ghostActive = profile.ghostOpacity > 0.001;
 
@@ -622,23 +674,34 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
 
   const handleGhostPointerMove = useCallback(
     (event: PointerEvent<HTMLDivElement>): void => {
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const pointerX = clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1), 0, 1);
+      const pointerY = clamp((event.clientY - bounds.top) / Math.max(bounds.height, 1), 0, 1);
+      const proximity = sourceRef.current ? getTargetProximity(sourceRef.current, event.clientX, event.clientY) : 0;
+      setPointerSensory({
+        x: pointerX * 100,
+        y: pointerY * 100,
+        proximity,
+      });
+
       if (!ghostActive) return;
 
-      const bounds = event.currentTarget.getBoundingClientRect();
       const strength = clamp(profile.ghostOpacity / 0.42, 0, 1);
-      const relativeX = clamp((event.clientX - bounds.left) / Math.max(bounds.width, 1), 0, 1) * 2 - 1;
-      const relativeY = clamp((event.clientY - bounds.top) / Math.max(bounds.height, 1), 0, 1) * 2 - 1;
+      const crossSensoryFollow = cursorAttraction;
+      const relativeX = pointerX * 2 - 1;
+      const relativeY = pointerY * 2 - 1;
       const base = getGhostBaseOffset();
 
       setGhostOffset({
-        x: base.x + relativeX * (6 + strength * 14),
-        y: base.y + relativeY * (5 + strength * 12),
+        x: base.x + relativeX * (strength * 8 + crossSensoryFollow * 30),
+        y: base.y + relativeY * (strength * 7 + crossSensoryFollow * 26),
       });
     },
-    [getGhostBaseOffset, ghostActive, profile.ghostOpacity],
+    [cursorAttraction, getGhostBaseOffset, ghostActive, profile.ghostOpacity],
   );
 
   const handleGhostPointerLeave = useCallback((): void => {
+    setPointerSensory((current) => ({ ...current, proximity: 0 }));
     setGhostOffset(getGhostBaseOffset());
   }, [getGhostBaseOffset]);
 
@@ -681,12 +744,24 @@ export function VisualEffectsLayer({ vision, synesthesia, visualMix, tick, child
           aria-hidden="true"
         />
         {profile.noiseOpacity > 0.001 ? (
-          <div className="visual-noise" style={{ opacity: profile.noiseOpacity }}>
+          <div
+            className="visual-noise"
+            style={{
+              opacity: profile.noiseOpacity,
+              '--noise-touch-x': `${pointerSensory.x.toFixed(1)}%`,
+              '--noise-touch-y': `${pointerSensory.y.toFixed(1)}%`,
+              '--noise-touch-opacity': `${(
+                pointerSensory.proximity *
+                Math.max(0, Math.min(1, synesthesia / 100)) *
+                0.58
+              ).toFixed(3)}`,
+            } as CSSProperties}
+          >
             {noiseParticles.map((particle) => (
               <span
                 key={particle.id}
                 className="visual-noise-particle"
-                style={getNoiseParticleStyle(particle)}
+                style={getNoiseParticleStyle(particle, pointerSensory, cursorAttraction)}
               />
             ))}
           </div>

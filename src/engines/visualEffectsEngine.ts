@@ -26,8 +26,10 @@ export function getVisualProfile(
   synesthesia: number,
   tick: number,
   visualMix: VisualMixLevels,
+  crossSensoryProximity = 0,
 ): VisualProfile {
   const visualMaster = Math.max(0, Math.min(100, vision)) / 100;
+  const crossSensoryActivation = Math.max(0, Math.min(1, crossSensoryProximity)) * Math.max(0, Math.min(1, synesthesia / 100));
   const blurLevel = visualMix.blur * visualMaster;
   const ghostLevel = visualMix.ghosting * visualMaster;
   const noiseLevel = visualMix.noise * visualMaster;
@@ -38,7 +40,8 @@ export function getVisualProfile(
   const blur = (blurLevel / 100) * 3.6;
   const contrastDrop = 1 - (blurLevel * 0.2 + noiseLevel * 0.18) / 300;
   const flicker = getFlickerPulse(flickerLevel, tick);
-  const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1100) - flicker * 0.46;
+  const touchFlicker = (flickerLevel / 100) * crossSensoryActivation * 0.18;
+  const brightness = 1 + Math.sin(tick * 0.0048) * (flickerLevel / 1100) - flicker * 0.46 - touchFlicker;
   const fisheyeAngle = lensDirection === 0 ? 0 : (((lensLevel / 100) ** 1.04) * Math.PI * 0.78 * lensDirection);
   const stageScale = Math.max(0.82, 1 - lensLevel / 560);
   const appearanceMixLevel = Math.max(blurLevel, ghostLevel, noiseLevel, flickerLevel);
@@ -57,9 +60,10 @@ export function getVisualProfile(
       opacity: Math.min(0.42, ghostLevel / 230),
     },
     fisheyeAngle,
-    noiseOpacity: Math.min(0.76, noiseLevel / 132),
+    noiseOpacity: Math.min(0.92, (noiseLevel / 132) * (1 + crossSensoryActivation * 0.85)),
     ghostOpacity: Math.min(0.42, ghostLevel / 230),
-    shimmerOpacity: appearanceMixLevel > 0 ? Math.min(0.35, synesthesia / 250) : 0,
-    fluorescentOpacity: Math.min(0.28, flicker),
+    shimmerOpacity:
+      appearanceMixLevel > 0 ? Math.min(0.45, synesthesia / 250 + crossSensoryActivation * 0.16) : 0,
+    fluorescentOpacity: Math.min(0.36, flicker + touchFlicker),
   };
 }
